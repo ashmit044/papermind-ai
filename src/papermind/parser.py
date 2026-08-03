@@ -1,0 +1,156 @@
+"""PDF parser and document sectioning engine for PaperMind AI.
+
+Extracts text, metadata, and section boundaries from academic papers using PyMuPDF.
+"""
+
+import re
+from pathlib import Path
+from typing import List, Dict, Any
+import fitz  # PyMuPDF
+from pydantic import BaseModel
+from papermind.config import config
+from papermind.utils.logger import logger
+
+
+class TextChunk(BaseModel):
+    """Represents a text chunk with positional metadata."""
+    chunk_id: int
+    text: str
+    page_num: int
+    section_name: str
+    char_count: int
+
+
+class DocumentMetadata(BaseModel):
+    """Metadata extracted from research paper."""
+    title: str
+    author: str
+    page_count: int
+    sections: List[str]
+
+
+class PaperParser:
+    """Extracts, cleans, and partitions PDF research papers into structured chunks."""
+
+    def __init__(self, chunk_size: int = config.chunk_size, chunk_overlap: int = config.chunk_overlap):
+        self.chunk_size = chunk_size
+        self.chunk_overlap = chunk_overlap
+
+    def parse_pdf(self, pdf_path: str | Path) -> tuple[DocumentMetadata, List[TextChunk]]:
+        """Parse a PDF file, extract text sections, and return metadata and text chunks."""
+        pdf_path = Path(pdf_path)
+        if not pdf_path.exists():
+            raise FileNotFoundError(f"PDF file not found at: {pdf_path}")
+
+        logger.info(f"Extracting document text from PDF: {pdf_path.name}")
+        doc = fitz.open(pdf_path)
+
+        metadata_dict = doc.metadata or {}
+        title = metadata_dict.get("title") or pdf_path.stem.replace("_", " ").title()
+        author = metadata_dict.get("author") or "Unknown Author"
+
+        raw_pages: List[tuple[int, str]] = []
+        sections_found: List[str] = []
+
+        for page_idx in range(len(doc)):
+            page = doc[page_idx]
+            text = page.get_text("text")
+            cleaned_text = self._clean_page_text(text)
+            if cleaned_text:
+                raw_pages.append((page_idx + 1, cleaned_text))
+
+        doc.close()
+
+        # Extract structured sections
+        chunks, detected_sections = self._chunk_document(raw_pages, title)
+
+        doc_meta = DocumentMetadata(
+            title=title,
+            author=author,
+            page_count=len(raw_pages),
+            sections=detected_sections if detected_sections else ["Full Document"],
+        )
+
+        logger.info(
+            f"Successfully parsed '{title}' ({doc_meta.page_count} pages, {len(chunks)} chunks)"
+        )
+        return doc_meta, chunks
+
+    def parse_raw_text(self, text: str, title: str = "Raw Document") -> tuple[DocumentMetadata, List[TextChunk]]:
+        """Parse raw text string directly without PDF input (useful for testing & text files)."""
+        cleaned = self._clean_page_text(text)
+        raw_pages = [(1, cleaned)]
+        chunks, detected_sections = self._chunk_document(raw_pages, title)
+
+        doc_meta = DocumentMetadata(
+            title=title,
+            author="User Input",
+            page_count=1,
+            sections=detected_sections if detected_sections else ["Full Document"],
+        )
+        return doc_meta, chunks
+
+    def _clean_page_text(self, text: str) -> str:
+        """Remove redundant whitespace, headers, footers, and line numbers."""
+        # Replace multiple whitespace/newlines
+        text = re.sub(r"\n\s*\n", "\n\n", text)
+        text = re.sub(r"[ \t]+", " ", text)
+        # Remove common academic header page indicators like "Page 1 of 12"
+        text = re.sub(r"(?i)page\s+\d+\s+of\s+\d+", "", text)
+        return text.strip()
+
+    def _chunk_document(
+        self, raw_pages: List[tuple[int, str]], default_title: str
+    ) -> tuple[List[TextChunk], List[str]]:
+        """Split page texts into overlapping chunks with section context."""
+        chunks: List[TextChunk] = []
+        chunk_id = 0
+        detected_sections: set[str] = set()
+
+        current_section = "Abstract / Intro"
+
+        # Regex for detecting common academic headings
+        section_pattern = re.compile(
+            r"^(?:\d+[\.\s]+)?(Abstract|Introduction|Related Work|Methodology|Methods|System Model|Experiments|Results|Discussion|Conclusion|References)",
+            re.IGNORECASE,
+        )
+
+        for page_num, page_text in raw_pages:
+            lines = page_text.split("\n")
+            current_paragraph = ""
+
+            for line in lines:
+                match = section_pattern.search(line.strip())
+                if match:
+                    header = match.group(1).title()
+                    current_section = header
+                    detected_sections.add(header)
+
+                current_paragraph += " " + line.strip()
+
+                if len(current_paragraph) >= self.chunk_size:
+                    chunk = TextChunk(
+                        chunk_id=chunk_id,
+                        text=current_paragraph.strip(),
+                        page_num=page_num,
+                        section_name=current_section,
+                        char_count=len(current_paragraph.strip()),
+                    )
+                    chunks.append(chunk)
+                    chunk_id += 1
+                    # Keep overlap
+                    overlap_chars = self.chunk_overlap
+                    current_paragraph = current_paragraph[-overlap_chars:] if len(current_paragraph) > overlap_chars else ""
+
+            if current_paragraph.strip():
+                chunk = TextChunk(
+                    chunk_id=chunk_id,
+                    text=current_paragraph.strip(),
+                    page_num=page_num,
+                    section_name=current_section,
+                    char_count=len(current_paragraph.strip()),
+                )
+                chunks.append(chunk)
+                chunk_id += 1
+
+        return chunks, list(detected_sections)
