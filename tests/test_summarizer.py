@@ -1,0 +1,26 @@
+"""Unit tests for PaperSummarizer."""
+
+import pytest
+from papermind.parser import DocumentMetadata, TextChunk
+from papermind.summarizer import PaperSummarizer
+
+
+def test_paper_summarizer_digest():
+    meta = DocumentMetadata(
+        title="Attention Is All You Need",
+        author="Vaswani et al.",
+        page_count=10,
+        sections=["Abstract", "Methodology", "Experiments"]
+    )
+    chunks = [
+        TextChunk(chunk_id=0, text="Abstract: We propose the Transformer, a model architecture based solely on attention mechanisms.", page_num=1, section_name="Abstract", char_count=100),
+        TextChunk(chunk_id=1, text="Methodology: Multi-head attention allows the model to jointly attend to information from different representation subspaces.", page_num=3, section_name="Methodology", char_count=120),
+    ]
+
+    summarizer = PaperSummarizer(meta, chunks)
+    digest = summarizer.generate_digest()
+
+    assert digest["title"] == "Attention Is All You Need"
+    assert digest["author"] == "Vaswani et al."
+    assert len(digest["overview"]) > 0
+    assert len(digest["key_insights"]) > 0
