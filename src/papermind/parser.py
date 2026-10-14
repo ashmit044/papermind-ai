@@ -5,15 +5,17 @@ Extracts text, metadata, and section boundaries from academic papers using PyMuP
 
 import re
 from pathlib import Path
-from typing import List, Dict, Any
+
 import fitz  # PyMuPDF
 from pydantic import BaseModel
+
 from papermind.config import config
 from papermind.utils.logger import logger
 
 
 class TextChunk(BaseModel):
     """Represents a text chunk with positional metadata."""
+
     chunk_id: int
     text: str
     page_num: int
@@ -23,25 +25,34 @@ class TextChunk(BaseModel):
 
 class DocumentMetadata(BaseModel):
     """Metadata extracted from research paper."""
+
     title: str
     author: str
     page_count: int
-    sections: List[str]
+    sections: list[str]
 
 
 class PaperParser:
     """Extracts, cleans, and partitions PDF research papers into structured chunks."""
 
-    def __init__(self, chunk_size: int = config.chunk_size, chunk_overlap: int = config.chunk_overlap):
+    def __init__(
+        self,
+        chunk_size: int = config.chunk_size,
+        chunk_overlap: int = config.chunk_overlap,
+    ):
         if chunk_size <= 0:
             raise ValueError("chunk_size must be greater than zero.")
         if chunk_overlap < 0 or chunk_overlap >= chunk_size:
-            raise ValueError("chunk_overlap must be non-negative and smaller than chunk_size.")
+            raise ValueError(
+                "chunk_overlap must be non-negative and smaller than chunk_size."
+            )
 
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
 
-    def parse_pdf(self, pdf_path: str | Path) -> tuple[DocumentMetadata, List[TextChunk]]:
+    def parse_pdf(
+        self, pdf_path: str | Path
+    ) -> tuple[DocumentMetadata, list[TextChunk]]:
         """Parse a PDF file, extract text sections, and return metadata and text chunks."""
         pdf_path = Path(pdf_path)
         if not pdf_path.exists():
@@ -54,9 +65,7 @@ class PaperParser:
         title = metadata_dict.get("title") or pdf_path.stem.replace("_", " ").title()
         author = metadata_dict.get("author") or "Unknown Author"
 
-        raw_pages: List[tuple[int, str]] = []
-        sections_found: List[str] = []
-
+        raw_pages: list[tuple[int, str]] = []
         for page_idx in range(len(doc)):
             page = doc[page_idx]
             text = page.get_text("text")
@@ -81,7 +90,9 @@ class PaperParser:
         )
         return doc_meta, chunks
 
-    def parse_raw_text(self, text: str, title: str = "Raw Document") -> tuple[DocumentMetadata, List[TextChunk]]:
+    def parse_raw_text(
+        self, text: str, title: str = "Raw Document"
+    ) -> tuple[DocumentMetadata, list[TextChunk]]:
         """Parse raw text string directly without PDF input (useful for testing & text files)."""
         cleaned = self._clean_page_text(text)
         raw_pages = [(1, cleaned)]
@@ -105,10 +116,10 @@ class PaperParser:
         return text.strip()
 
     def _chunk_document(
-        self, raw_pages: List[tuple[int, str]], default_title: str
-    ) -> tuple[List[TextChunk], List[str]]:
+        self, raw_pages: list[tuple[int, str]], default_title: str
+    ) -> tuple[list[TextChunk], list[str]]:
         """Split page texts into overlapping chunks with section context."""
-        chunks: List[TextChunk] = []
+        chunks: list[TextChunk] = []
         chunk_id = 0
         detected_sections: set[str] = set()
 
@@ -162,7 +173,11 @@ class PaperParser:
                     chunk_id += 1
                     # Keep overlap
                     overlap_chars = self.chunk_overlap
-                    current_paragraph = current_paragraph[-overlap_chars:] if len(current_paragraph) > overlap_chars else ""
+                    current_paragraph = (
+                        current_paragraph[-overlap_chars:]
+                        if len(current_paragraph) > overlap_chars
+                        else ""
+                    )
 
             if current_paragraph.strip():
                 chunk = TextChunk(

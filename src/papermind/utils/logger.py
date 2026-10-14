@@ -1,6 +1,7 @@
 """Custom logging utility using Loguru."""
 
 import sys
+
 from loguru import logger
 
 # Remove default logger handlers

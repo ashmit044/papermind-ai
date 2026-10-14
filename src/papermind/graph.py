@@ -4,9 +4,11 @@ Extracts concept co-occurrence network graph from research paper chunks.
 """
 
 import re
-from typing import List, Dict, Any, Tuple
+from typing import Any
+
 import networkx as nx
 import plotly.graph_objects as go
+
 from papermind.parser import TextChunk
 from papermind.utils.logger import logger
 
@@ -17,28 +19,45 @@ class ConceptGraphExtractor:
     def __init__(self, top_n_concepts: int = 15):
         self.top_n_concepts = top_n_concepts
 
-    def build_graph(self, chunks: List[TextChunk]) -> Tuple[nx.Graph, List[Dict[str, Any]]]:
+    def build_graph(
+        self, chunks: list[TextChunk]
+    ) -> tuple[nx.Graph, list[dict[str, Any]]]:
         """Extract top concept nodes and co-occurrence edges from chunks."""
         logger.info("Extracting concept knowledge graph from document chunks...")
-        
+
         # Simple rule-based extraction for AI/CS domain entities
-        concept_freq: Dict[str, int] = {}
-        chunk_concepts: List[List[str]] = []
+        concept_freq: dict[str, int] = {}
+        chunk_concepts: list[list[str]] = []
 
         # Common stop words to ignore
         stopwords = {
-            "this", "that", "with", "from", "using", "paper", "results", "model",
-            "method", "data", "table", "figure", "section", "show", "used", "also"
+            "this",
+            "that",
+            "with",
+            "from",
+            "using",
+            "paper",
+            "results",
+            "model",
+            "method",
+            "data",
+            "table",
+            "figure",
+            "section",
+            "show",
+            "used",
+            "also",
         }
 
         for chunk in chunks:
             # Match technical terms (Capitalized words, acronyms, or tech keywords)
-            words = re.findall(r"\b[A-Z][a-z0-9]+(?:\s+[A-Z][a-z0-9]+)*\b|\b[A-Z]{2,}\b", chunk.text)
+            words = re.findall(
+                r"\b[A-Z][a-z0-9]+(?:\s+[A-Z][a-z0-9]+)*\b|\b[A-Z]{2,}\b", chunk.text
+            )
             cleaned = [
-                w.strip() for w in words 
-                if len(w) > 2 and w.lower() not in stopwords
+                w.strip() for w in words if len(w) > 2 and w.lower() not in stopwords
             ]
-            
+
             unique_in_chunk = list(set(cleaned))
             chunk_concepts.append(unique_in_chunk)
 
@@ -47,11 +66,21 @@ class ConceptGraphExtractor:
 
         # Select top N most frequent concepts
         sorted_concepts = sorted(concept_freq.items(), key=lambda x: x[1], reverse=True)
-        top_concepts = set([item[0] for item in sorted_concepts[: self.top_n_concepts]])
+        top_concepts = {item[0] for item in sorted_concepts[: self.top_n_concepts]}
 
         # Fallback if few capitalized words are found
         if len(top_concepts) < 5:
-            top_concepts.update(["Embedding", "Transformer", "Attention", "Encoder", "Loss Function", "Dataset", "Accuracy"])
+            top_concepts.update(
+                [
+                    "Embedding",
+                    "Transformer",
+                    "Attention",
+                    "Encoder",
+                    "Loss Function",
+                    "Dataset",
+                    "Accuracy",
+                ]
+            )
 
         G = nx.Graph()
         for concept in top_concepts:
@@ -86,7 +115,7 @@ class ConceptGraphExtractor:
         edge_trace = go.Scatter(
             x=edge_x,
             y=edge_y,
-            line=dict(width=1, color="#888888"),
+            line={"width": 1, "color": "#888888"},
             hoverinfo="none",
             mode="lines",
         )
@@ -112,35 +141,35 @@ class ConceptGraphExtractor:
             text=[node for node in G.nodes()],
             textposition="top center",
             hovertext=node_text,
-            marker=dict(
-                showscale=True,
-                colorscale="Viridis",
-                color=node_size,
-                size=node_size,
-                colorbar=dict(
-                    thickness=15,
-                    title=dict(text="Node Centrality", font=dict(color="white")),
-                    xanchor="left",
-                    tickfont=dict(color="white"),
-                ),
-                line_width=2,
-            ),
+            marker={
+                "showscale": True,
+                "colorscale": "Viridis",
+                "color": node_size,
+                "size": node_size,
+                "colorbar": {
+                    "thickness": 15,
+                    "title": {"text": "Node Centrality", "font": {"color": "white"}},
+                    "xanchor": "left",
+                    "tickfont": {"color": "white"},
+                },
+                "line": {"width": 2},
+            },
         )
 
         fig = go.Figure(
             data=[edge_trace, node_trace],
             layout=go.Layout(
-                title=dict(
-                    text="🕸️ Paper Concept & Entity Knowledge Graph",
-                    font=dict(size=18, color="white"),
-                ),
+                title={
+                    "text": "🕸️ Paper Concept & Entity Knowledge Graph",
+                    "font": {"size": 18, "color": "white"},
+                },
                 showlegend=False,
                 hovermode="closest",
-                margin=dict(b=20, l=5, r=5, t=40),
+                margin={"b": 20, "l": 5, "r": 5, "t": 40},
                 paper_bgcolor="rgba(15, 23, 42, 1)",
                 plot_bgcolor="rgba(15, 23, 42, 1)",
-                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                xaxis={"showgrid": False, "zeroline": False, "showticklabels": False},
+                yaxis={"showgrid": False, "zeroline": False, "showticklabels": False},
             ),
         )
 

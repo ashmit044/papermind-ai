@@ -12,12 +12,13 @@ if str(src_dir) not in sys.path:
     sys.path.insert(0, str(src_dir))
 
 import streamlit as st
+
 from papermind.config import config
-from papermind.parser import PaperParser
 from papermind.embeddings import VectorIndex
+from papermind.graph import ConceptGraphExtractor
+from papermind.parser import PaperParser
 from papermind.rag_engine import RAGEngine
 from papermind.summarizer import PaperSummarizer
-from papermind.graph import ConceptGraphExtractor
 from papermind.utils.exporter import DigestExporter
 
 # Streamlit Page Config
@@ -29,7 +30,8 @@ st.set_page_config(
 )
 
 # Custom CSS for Dark Glassmorphism Styling
-st.markdown("""
+st.markdown(
+    """
 <style>
     .main {
         background-color: #0f172a;
@@ -57,7 +59,9 @@ st.markdown("""
         font-weight: 600;
     }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 
 def sample_document_text() -> str:
@@ -91,7 +95,7 @@ def main():
         ["Offline Synthesizer (Fast)", "Ollama (Local Llama3)", "OpenAI GPT-3.5"],
         index=0,
     )
-    
+
     provider_map = {
         "Offline Synthesizer (Fast)": "offline",
         "Ollama (Local Llama3)": "ollama",
@@ -100,11 +104,15 @@ def main():
     selected_provider = provider_map[llm_option]
 
     st.sidebar.markdown("---")
-    st.sidebar.markdown("💡 **Tip:** Upload any PDF or use the sample paper below for instant testing.")
+    st.sidebar.markdown(
+        "💡 **Tip:** Upload any PDF or use the sample paper below for instant testing."
+    )
 
     # Main Title Header
     st.title("📄 PaperMind AI Research Digest")
-    st.write("Upload a research paper PDF to extract executive summaries, query using RAG, and visualize knowledge graphs.")
+    st.write(
+        "Upload a research paper PDF to extract executive summaries, query using RAG, and visualize knowledge graphs."
+    )
 
     uploaded_file = st.file_uploader("Upload Academic Paper (PDF)", type=["pdf"])
     use_sample = st.checkbox("Use Demo Sample Paper", value=uploaded_file is None)
@@ -120,11 +128,17 @@ def main():
                     f.write(uploaded_file.getbuffer())
                 meta, chunks = parser.parse_pdf(temp_path)
             else:
-                meta, chunks = parser.parse_raw_text(sample_document_text(), title="FlashMind: Efficient Long-Context Transformers")
+                meta, chunks = parser.parse_raw_text(
+                    sample_document_text(),
+                    title="FlashMind: Efficient Long-Context Transformers",
+                )
 
         # Top Summary Metrics
         col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Document Title", meta.title[:25] + "..." if len(meta.title) > 25 else meta.title)
+        col1.metric(
+            "Document Title",
+            meta.title[:25] + "..." if len(meta.title) > 25 else meta.title,
+        )
         col2.metric("Total Pages", meta.page_count)
         col3.metric("Text Chunks", len(chunks))
         col4.metric("Sections Detected", len(meta.sections))
@@ -132,11 +146,13 @@ def main():
         st.markdown("---")
 
         # Tabs Navigation
-        tab_summary, tab_rag, tab_graph = st.tabs([
-            "📌 Executive Digest",
-            "💬 Grounded RAG Q&A",
-            "🕸️ Concept Graph",
-        ])
+        tab_summary, tab_rag, tab_graph = st.tabs(
+            [
+                "📌 Executive Digest",
+                "💬 Grounded RAG Q&A",
+                "🕸️ Concept Graph",
+            ]
+        )
 
         # TAB 1: Executive Digest
         with tab_summary:
@@ -164,45 +180,70 @@ def main():
                 md_path = config.cache_dir / f"{meta.title[:15]}_digest.md"
                 DigestExporter.export_to_markdown(digest, md_path)
                 with open(md_path, "r", encoding="utf-8") as f:
-                    st.download_button("Download Markdown Report", f.read(), file_name="paper_digest.md", mime="text/markdown")
+                    st.download_button(
+                        "Download Markdown Report",
+                        f.read(),
+                        file_name="paper_digest.md",
+                        mime="text/markdown",
+                    )
             with exp_col2:
                 json_path = config.cache_dir / f"{meta.title[:15]}_digest.json"
                 DigestExporter.export_to_json(digest, json_path)
                 with open(json_path, "r", encoding="utf-8") as f:
-                    st.download_button("Download JSON Data", f.read(), file_name="paper_digest.json", mime="application/json")
+                    st.download_button(
+                        "Download JSON Data",
+                        f.read(),
+                        file_name="paper_digest.json",
+                        mime="application/json",
+                    )
 
         # TAB 2: Grounded RAG Q&A
         with tab_rag:
             st.subheader("💬 Ask Questions Grounded in Paper Context")
-            
+
             # Initialize Vector Index
-            if "vector_index" not in st.session_state or st.session_state.get("current_doc") != meta.title:
-                with st.spinner("Building FAISS vector index with sentence-transformers..."):
+            if (
+                "vector_index" not in st.session_state
+                or st.session_state.get("current_doc") != meta.title
+            ):
+                with st.spinner(
+                    "Building FAISS vector index with sentence-transformers..."
+                ):
                     idx_mgr = VectorIndex()
                     idx_mgr.build_index(chunks)
                     st.session_state.vector_index = idx_mgr
                     st.session_state.current_doc = meta.title
 
-            rag = RAGEngine(st.session_state.vector_index, llm_provider=selected_provider)
+            rag = RAGEngine(
+                st.session_state.vector_index, llm_provider=selected_provider
+            )
 
-            user_query = st.text_input("Enter your question about the paper:", placeholder="e.g. What memory complexity improvement does FlashMind achieve?")
-            
-            if st.button("Submit Question") or user_query:
-                if user_query:
-                    with st.spinner("Retrieving semantic context and synthesizing answer..."):
-                        response = rag.query(user_query, top_k=3)
-                        st.markdown("#### 🤖 Grounded AI Answer")
-                        st.success(response.answer)
+            user_query = st.text_input(
+                "Enter your question about the paper:",
+                placeholder="e.g. What memory complexity improvement does FlashMind achieve?",
+            )
 
-                        st.markdown("#### 📚 Source Citations & Snippets")
-                        for src in response.sources:
-                            with st.expander(f"Page {src.page_num} | Section: {src.section_name} (Similarity: {src.similarity_score})"):
-                                st.write(src.snippet)
+            if user_query:
+                with st.spinner(
+                    "Retrieving semantic context and synthesizing answer..."
+                ):
+                    response = rag.query(user_query, top_k=3)
+                    st.markdown("#### 🤖 Grounded AI Answer")
+                    st.success(response.answer)
+
+                    st.markdown("#### 📚 Source Citations & Snippets")
+                    for src in response.sources:
+                        with st.expander(
+                            f"Page {src.page_num} | Section: {src.section_name} (Similarity: {src.similarity_score})"
+                        ):
+                            st.write(src.snippet)
 
         # TAB 3: Concept Graph
         with tab_graph:
             st.subheader("🕸️ Concept Co-occurrence & Entity Graph")
-            st.write("Extracts technical concepts, model names, and relationships directly from the document.")
+            st.write(
+                "Extracts technical concepts, model names, and relationships directly from the document."
+            )
 
             with st.spinner("Generating concept network graph..."):
                 extractor = ConceptGraphExtractor(top_n_concepts=15)

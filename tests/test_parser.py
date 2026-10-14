@@ -1,6 +1,7 @@
 """Unit tests for PaperParser."""
 
 import pytest
+
 from papermind.parser import PaperParser
 
 
@@ -25,7 +26,7 @@ def test_parse_raw_text():
     Our method achieves 99.2% accuracy on benchmark tasks.
     """
     meta, chunks = parser.parse_raw_text(sample_text, title="Test Paper")
-    
+
     assert meta.title == "Test Paper"
     assert meta.page_count == 1
     assert len(chunks) > 0

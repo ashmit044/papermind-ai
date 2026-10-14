@@ -3,16 +3,16 @@
 Combines vector retrieval with local or remote LLMs to answer questions grounded in paper context.
 """
 
-from typing import List, Dict, Any
 from pydantic import BaseModel
+
 from papermind.config import config
 from papermind.embeddings import VectorIndex
-from papermind.parser import TextChunk
 from papermind.utils.logger import logger
 
 
 class SourceRef(BaseModel):
     """Reference to source document snippet."""
+
     chunk_id: int
     page_num: int
     section_name: str
@@ -22,25 +22,28 @@ class SourceRef(BaseModel):
 
 class RAGResponse(BaseModel):
     """Structured Q&A answer response."""
+
     query: str
     answer: str
-    sources: List[SourceRef]
+    sources: list[SourceRef]
 
 
 class RAGEngine:
     """Retrieval-Augmented Generation query engine."""
 
-    def __init__(self, vector_index: VectorIndex, llm_provider: str = config.llm_provider):
+    def __init__(
+        self, vector_index: VectorIndex, llm_provider: str = config.llm_provider
+    ):
         self.vector_index = vector_index
         self.llm_provider = llm_provider
 
     def query(self, question: str, top_k: int = 3) -> RAGResponse:
         """Retrieve relevant paper chunks and answer question using context grounding."""
         logger.info(f"Processing RAG Query: '{question}'")
-        
+
         matches = self.vector_index.search(question, top_k=top_k)
-        
-        sources: List[SourceRef] = []
+
+        sources: list[SourceRef] = []
         context_str = ""
 
         for chunk, score in matches:
@@ -50,7 +53,11 @@ class RAGEngine:
                     page_num=chunk.page_num,
                     section_name=chunk.section_name,
                     similarity_score=round(score, 4),
-                    snippet=chunk.text[:200] + "..." if len(chunk.text) > 200 else chunk.text,
+                    snippet=(
+                        chunk.text[:200] + "..."
+                        if len(chunk.text) > 200
+                        else chunk.text
+                    ),
                 )
             )
             context_str += f"\n--- [Page {chunk.page_num} | Section: {chunk.section_name}] ---\n{chunk.text}\n"
@@ -106,7 +113,14 @@ class RAGEngine:
     def _query_openai(self, question: str, context: str) -> str:
         """Query OpenAI ChatCompletion API if configured."""
         try:
-            from openai import OpenAI
+            from openai import OpenAI, OpenAIError
+        except ImportError as e:
+            logger.error(
+                f"OpenAI SDK unavailable: {e}. Falling back to offline synthesis."
+            )
+            return self._offline_synthesis(question, context)
+
+        try:
             client = OpenAI(api_key=config.openai_api_key)
             prompt = f"You are a research paper assistant. Answer the user question using ONLY the provided context.\n\nContext:\n{context}\n\nQuestion: {question}"
             response = client.chat.completions.create(
@@ -115,14 +129,23 @@ class RAGEngine:
                 temperature=0.2,
             )
             return response.choices[0].message.content or "No response generated."
-        except Exception as e:
-            logger.error(f"OpenAI API call failed: {e}. Falling back to offline synthesis.")
+        except OpenAIError as e:
+            logger.error(
+                f"OpenAI API call failed: {e}. Falling back to offline synthesis."
+            )
             return self._offline_synthesis(question, context)
 
     def _query_ollama(self, question: str, context: str) -> str:
         """Query local Ollama instance if available."""
         try:
             import requests
+        except ImportError as e:
+            logger.error(
+                f"Requests package unavailable: {e}. Falling back to offline synthesis."
+            )
+            return self._offline_synthesis(question, context)
+
+        try:
             prompt = f"Context:\n{context}\n\nQuestion: {question}\n\nAnswer:"
             resp = requests.post(
                 "http://localhost:11434/api/generate",
@@ -133,6 +156,8 @@ class RAGEngine:
                 return resp.json().get("response", "")
             else:
                 return self._offline_synthesis(question, context)
-        except Exception as e:
-            logger.error(f"Ollama connection error: {e}. Falling back to offline synthesis.")
+        except (requests.RequestException, ValueError) as e:
+            logger.error(
+                f"Ollama connection error: {e}. Falling back to offline synthesis."
+            )
             return self._offline_synthesis(question, context)
