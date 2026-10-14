@@ -9,6 +9,8 @@ on:
 jobs:
   lint-and-test:
     runs-on: ubuntu-24.04
+    env:
+      PYTHONPATH: src
 
     steps:
     - uses: actions/checkout@v5
