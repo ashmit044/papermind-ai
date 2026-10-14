@@ -30,3 +30,12 @@ def test_parse_raw_text():
     assert meta.page_count == 1
     assert len(chunks) > 0
     assert any("Abstract" in c.section_name for c in chunks)
+
+
+@pytest.mark.parametrize(
+    "chunk_size, chunk_overlap",
+    [(0, 0), (-1, 0), (100, -1), (100, 100)],
+)
+def test_parser_rejects_invalid_chunk_configuration(chunk_size, chunk_overlap):
+    with pytest.raises(ValueError):
+        PaperParser(chunk_size=chunk_size, chunk_overlap=chunk_overlap)

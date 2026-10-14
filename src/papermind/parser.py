@@ -33,6 +33,11 @@ class PaperParser:
     """Extracts, cleans, and partitions PDF research papers into structured chunks."""
 
     def __init__(self, chunk_size: int = config.chunk_size, chunk_overlap: int = config.chunk_overlap):
+        if chunk_size <= 0:
+            raise ValueError("chunk_size must be greater than zero.")
+        if chunk_overlap < 0 or chunk_overlap >= chunk_size:
+            raise ValueError("chunk_overlap must be non-negative and smaller than chunk_size.")
+
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
 
@@ -92,9 +97,9 @@ class PaperParser:
 
     def _clean_page_text(self, text: str) -> str:
         """Remove redundant whitespace, headers, footers, and line numbers."""
-        # Replace multiple whitespace/newlines
-        text = re.sub(r"\n\s*\n", "\n\n", text)
-        text = re.sub(r"[ \t]+", " ", text)
+        # Normalize each line without losing meaningful section boundaries.
+        lines = [re.sub(r"[ \t]+", " ", line).strip() for line in text.splitlines()]
+        text = re.sub(r"\n{3,}", "\n\n", "\n".join(lines))
         # Remove common academic header page indicators like "Page 1 of 12"
         text = re.sub(r"(?i)page\s+\d+\s+of\s+\d+", "", text)
         return text.strip()
@@ -122,6 +127,23 @@ class PaperParser:
             for line in lines:
                 match = section_pattern.search(line.strip())
                 if match:
+                    # Finish the preceding section before changing its label;
+                    # otherwise a short section can be incorrectly attributed
+                    # to the next heading on the same page.
+                    if current_paragraph.strip():
+                        chunk_text = current_paragraph.strip()
+                        chunks.append(
+                            TextChunk(
+                                chunk_id=chunk_id,
+                                text=chunk_text,
+                                page_num=page_num,
+                                section_name=current_section,
+                                char_count=len(chunk_text),
+                            )
+                        )
+                        chunk_id += 1
+                        current_paragraph = ""
+
                     header = match.group(1).title()
                     current_section = header
                     detected_sections.add(header)
