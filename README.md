@@ -30,6 +30,7 @@ Whether you prefer a terminal command-line tool with rich formatting or a sleek 
 
 - 📑 **Smart PDF Structure Extraction**: Uses `PyMuPDF` (`fitz`) to parse academic paper sections (*Abstract, Intro, Methods, Experiments, Conclusion*), removing headers/footers and splitting text into overlapping semantic chunks.
 - ⚡ **Local Dense Vector Retrieval (RAG)**: Indexes text chunks with `sentence-transformers/all-MiniLM-L6-v2` and `FAISS` for cosine similarity search with exact page and section citations.
+- 🔎 **Traceable RAG Answers**: Answers cite retrieved passages inline (`[S1]`), mapped to page and section snippets; missing or unknown citations are clearly flagged.
 - 📌 **Executive Paper Summaries**: Generates structured executive digests including key takeaways, methodological novelty, and research limitations.
 - 🕸️ **Interactive Concept Knowledge Graph**: Extracts domain concepts and entities into an interactive `NetworkX` & `Plotly` network graph showing central themes and co-occurrence nodes.
 - 🖥️ **Dual Interface**:

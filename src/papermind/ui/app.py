@@ -234,7 +234,7 @@ def main():
                     st.markdown("#### 📚 Source Citations & Snippets")
                     for src in response.sources:
                         with st.expander(
-                            f"Page {src.page_num} | Section: {src.section_name} (Similarity: {src.similarity_score})"
+                            f"[S{src.source_id}] Page {src.page_num} | Section: {src.section_name} (Similarity: {src.similarity_score})"
                         ):
                             st.write(src.snippet)
 

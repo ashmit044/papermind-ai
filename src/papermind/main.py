@@ -131,7 +131,7 @@ def ask(
     console.print("\n[bold yellow]📚 Retrieved Source Snips:[/bold yellow]")
     for src in result.sources:
         console.print(
-            f'• [dim]Page {src.page_num} | Section: {src.section_name} | Similarity: {src.similarity_score:.2f}[/dim]\n  "{src.snippet}"\n'
+            f'• [dim][S{src.source_id}] Page {src.page_num} | Section: {src.section_name} | Similarity: {src.similarity_score:.2f}[/dim]\n  "{src.snippet}"\n'
         )
 
 

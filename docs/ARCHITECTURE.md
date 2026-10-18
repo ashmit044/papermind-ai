@@ -41,7 +41,8 @@ graph TD
 
 ### 3. RAG Q&A Grounding (`papermind.rag_engine`)
 - Queries FAISS index for top-$K$ semantic matches.
-- Builds grounded context prompts with exact page number and section attributions.
+- Builds grounded context prompts with stable source labels, exact page number, and section attributions. Generated answers should cite those labels inline; unknown or omitted citations are flagged for review.
+- Treats retrieved document text as untrusted input and instructs LLM providers not to follow instructions embedded in papers.
 - Supports pluggable backends:
   - **Offline Synthesizer**: Fast standalone extraction without requiring API keys.
   - **Ollama**: Local `llama3` LLM execution.
