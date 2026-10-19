@@ -3,6 +3,7 @@
 Extracts text, metadata, and section boundaries from academic papers using PyMuPDF.
 """
 
+import hashlib
 import re
 from pathlib import Path
 
@@ -11,6 +12,11 @@ from pydantic import BaseModel
 
 from papermind.config import config
 from papermind.utils.logger import logger
+
+
+def document_fingerprint(content: bytes) -> str:
+    """Return a stable identifier for document bytes, independent of its filename."""
+    return hashlib.sha256(content).hexdigest()
 
 
 class TextChunk(BaseModel):
@@ -51,7 +57,7 @@ class PaperParser:
         self.chunk_overlap = chunk_overlap
 
     def parse_pdf(
-        self, pdf_path: str | Path
+        self, pdf_path: str | Path, fallback_title: str | None = None
     ) -> tuple[DocumentMetadata, list[TextChunk]]:
         """Parse a PDF file, extract text sections, and return metadata and text chunks."""
         pdf_path = Path(pdf_path)
@@ -62,7 +68,11 @@ class PaperParser:
         doc = fitz.open(pdf_path)
 
         metadata_dict = doc.metadata or {}
-        title = metadata_dict.get("title") or pdf_path.stem.replace("_", " ").title()
+        title = (
+            metadata_dict.get("title")
+            or fallback_title
+            or pdf_path.stem.replace("_", " ").title()
+        )
         author = metadata_dict.get("author") or "Unknown Author"
 
         raw_pages: list[tuple[int, str]] = []

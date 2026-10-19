@@ -16,7 +16,7 @@ import streamlit as st
 from papermind.config import config
 from papermind.embeddings import VectorIndex
 from papermind.graph import ConceptGraphExtractor
-from papermind.parser import PaperParser
+from papermind.parser import PaperParser, document_fingerprint
 from papermind.rag_engine import RAGEngine
 from papermind.summarizer import PaperSummarizer
 from papermind.utils.exporter import DigestExporter
@@ -122,14 +122,21 @@ def main():
 
         with st.spinner("Processing paper and extracting section chunks..."):
             if uploaded_file is not None:
-                # Save temp pdf
-                temp_path = config.cache_dir / uploaded_file.name
+                file_contents = uploaded_file.getvalue()
+                document_id = document_fingerprint(file_contents)
+                safe_filename = Path(uploaded_file.name).name or "uploaded_document.pdf"
+                temp_path = config.cache_dir / f"{document_id}.pdf"
                 with open(temp_path, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
-                meta, chunks = parser.parse_pdf(temp_path)
+                    f.write(file_contents)
+                fallback_title = Path(safe_filename).stem.replace("_", " ").title()
+                meta, chunks = parser.parse_pdf(
+                    temp_path, fallback_title=fallback_title
+                )
             else:
+                sample_text = sample_document_text()
+                document_id = document_fingerprint(sample_text.encode("utf-8"))
                 meta, chunks = parser.parse_raw_text(
-                    sample_document_text(),
+                    sample_text,
                     title="FlashMind: Efficient Long-Context Transformers",
                 )
 
@@ -204,7 +211,7 @@ def main():
             # Initialize Vector Index
             if (
                 "vector_index" not in st.session_state
-                or st.session_state.get("current_doc") != meta.title
+                or st.session_state.get("current_doc_id") != document_id
             ):
                 with st.spinner(
                     "Building FAISS vector index with sentence-transformers..."
@@ -212,7 +219,7 @@ def main():
                     idx_mgr = VectorIndex()
                     idx_mgr.build_index(chunks)
                     st.session_state.vector_index = idx_mgr
-                    st.session_state.current_doc = meta.title
+                    st.session_state.current_doc_id = document_id
 
             rag = RAGEngine(
                 st.session_state.vector_index, llm_provider=selected_provider

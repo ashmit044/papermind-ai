@@ -1,8 +1,20 @@
 """Unit tests for PaperParser."""
 
+import fitz
 import pytest
 
-from papermind.parser import PaperParser
+from papermind.parser import PaperParser, document_fingerprint
+
+
+def test_document_fingerprint_tracks_content_not_filename():
+    first_document = b"paper contents"
+    same_document = b"paper contents"
+    different_document = b"different paper contents"
+
+    assert document_fingerprint(first_document) == document_fingerprint(same_document)
+    assert document_fingerprint(first_document) != document_fingerprint(
+        different_document
+    )
 
 
 def test_clean_page_text():
@@ -31,6 +43,20 @@ def test_parse_raw_text():
     assert meta.page_count == 1
     assert len(chunks) > 0
     assert any("Abstract" in c.section_name for c in chunks)
+
+
+def test_parse_pdf_uses_upload_name_when_pdf_has_no_title(tmp_path):
+    pdf_path = tmp_path / "content-hash.pdf"
+    document = fitz.open()
+    document.new_page().insert_text((72, 72), "A short research paper.")
+    document.save(pdf_path)
+    document.close()
+
+    metadata, _chunks = PaperParser().parse_pdf(
+        pdf_path, fallback_title="Uploaded Paper"
+    )
+
+    assert metadata.title == "Uploaded Paper"
 
 
 @pytest.mark.parametrize(
