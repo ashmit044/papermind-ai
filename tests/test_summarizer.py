@@ -35,3 +35,4 @@ def test_paper_summarizer_digest():
     assert digest["author"] == "Vaswani et al."
     assert len(digest["overview"]) > 0
     assert len(digest["key_insights"]) > 0
+    assert digest["limitations"] == "Not identified in the extracted text."
