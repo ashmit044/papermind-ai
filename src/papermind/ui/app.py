@@ -125,7 +125,7 @@ def main():
 
     st.sidebar.markdown("---")
     st.sidebar.markdown(
-        "💡 **Tip:** Upload any PDF or use the sample paper below for instant testing."
+        "💡 **Tip:** Upload a text-based PDF or try the clearly labelled fictional demo."
     )
 
     # Main Title Header
