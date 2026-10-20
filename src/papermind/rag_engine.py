@@ -113,13 +113,6 @@ class RAGEngine:
                 f"Section: {chunk.section_name}] ---\n{chunk.text}\n"
             )
 
-        if not matches:
-            return RAGResponse(
-                query=question,
-                answer="No relevant text context could be retrieved from the document to answer this query.",
-                sources=[],
-            )
-
         answer = self._generate_answer(question, context_str)
         answer = self._check_answer_citations(answer, sources)
 
@@ -285,7 +278,7 @@ class RAGEngine:
             )
             if resp.status_code == 200:
                 return resp.json().get("response", "")
-            logger.error("Ollama returned HTTP status %s", resp.status_code)
+            logger.error(f"Ollama returned HTTP status {resp.status_code}")
             return (
                 f"Ollama returned HTTP status {resp.status_code}; showing retrieved "
                 "evidence with the offline passage extractor instead.\n\n"
