@@ -1,0 +1,62 @@
+{
+  "description": "Synthetic academic passages for a small retrieval smoke benchmark; not a representative scientific corpus.",
+  "chunks": [
+    {
+      "chunk_id": 0,
+      "page_num": 1,
+      "section_name": "Methods",
+      "text": "We train the image classifier with AdamW, a learning rate of 0.0003, and batches of 64 examples."
+    },
+    {
+      "chunk_id": 1,
+      "page_num": 2,
+      "section_name": "Results",
+      "text": "On ImageNet validation, the proposed model reaches 84.2 percent top-1 accuracy, compared with 82.7 percent for the baseline."
+    },
+    {
+      "chunk_id": 2,
+      "page_num": 3,
+      "section_name": "Methods",
+      "text": "We reduce attention memory from quadratic to linear in sequence length by computing exact blockwise softmax without materializing the full score matrix."
+    },
+    {
+      "chunk_id": 3,
+      "page_num": 4,
+      "section_name": "Ablation Study",
+      "text": "Removing data augmentation lowers top-1 accuracy by 2.1 percentage points, while removing weight decay lowers it by 0.6 points."
+    },
+    {
+      "chunk_id": 4,
+      "page_num": 5,
+      "section_name": "Limitations",
+      "text": "The evaluation uses three random seeds and a single image classification benchmark, limiting conclusions about performance on other domains."
+    },
+    {
+      "chunk_id": 5,
+      "page_num": 6,
+      "section_name": "Methods",
+      "text": "The training corpus contains 120000 labeled images, divided into 108000 training examples and 12000 validation examples."
+    },
+    {
+      "chunk_id": 6,
+      "page_num": 7,
+      "section_name": "Results",
+      "text": "The model requires 38 milliseconds per image on an NVIDIA A100 GPU at batch size 1, measured after warm-up."
+    },
+    {
+      "chunk_id": 7,
+      "page_num": 8,
+      "section_name": "Related Work",
+      "text": "Prior work has explored low-rank attention, kernel approximations, and recurrent state models for long-context processing."
+    }
+  ],
+  "queries": [
+    {"question": "What optimizer and learning rate are used for training?", "relevant_chunk_ids": [0]},
+    {"question": "How does the proposed model's ImageNet top-1 accuracy compare to the baseline?", "relevant_chunk_ids": [1]},
+    {"question": "How does the method reduce attention memory complexity?", "relevant_chunk_ids": [2]},
+    {"question": "What is the effect of removing data augmentation?", "relevant_chunk_ids": [3]},
+    {"question": "What limits the generalizability of the evaluation?", "relevant_chunk_ids": [4]},
+    {"question": "How many labeled images are in the training corpus?", "relevant_chunk_ids": [5]},
+    {"question": "What is inference latency on an A100 at batch size one?", "relevant_chunk_ids": [6]}
+  ]
+}

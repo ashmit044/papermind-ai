@@ -219,6 +219,21 @@ ruff check src tests
 black --check src tests
 ```
 
+### Retrieval smoke benchmark
+
+To measure whether the current dense retriever finds labeled supporting passages
+in a small synthetic dataset, run:
+
+```bash
+python scripts/evaluate_retrieval.py --top-k 3
+```
+
+The first run may download the configured Sentence Transformers model. The script
+reports Recall@k and truncated mean reciprocal rank (MRR@k). Its synthetic examples
+are a regression smoke test, not a representative corpus or a claim of research-grade
+retrieval quality. See [`evaluations/retrieval_smoke.json`](evaluations/retrieval_smoke.json)
+to inspect or extend the labeled cases.
+
 ---
 
 ## 🔮 Future Improvements
