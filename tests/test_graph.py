@@ -39,10 +39,17 @@ def test_graph_contains_only_extracted_terms_and_labels_frequency_truthfully():
 
 
 def test_graph_requires_positive_concept_limit():
-    for value in (0, -1, True):
+    for value in (0, -1):
         try:
             ConceptGraphExtractor(top_n_concepts=value)
         except ValueError as error:
             assert "positive integer" in str(error)
         else:
             raise AssertionError("Invalid concept limit should raise ValueError")
+
+    try:
+        ConceptGraphExtractor(top_n_concepts=True)
+    except TypeError as error:
+        assert "integer" in str(error)
+    else:
+        raise AssertionError("A boolean concept limit should raise TypeError")
