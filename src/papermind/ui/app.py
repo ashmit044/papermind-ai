@@ -121,7 +121,9 @@ def main():
             "Do not select it for sensitive documents unless this data transfer is acceptable."
         )
     elif selected_provider == "ollama":
-        st.sidebar.caption("Ollama mode sends prompts to the local Ollama service on this machine.")
+        st.sidebar.caption(
+            "Ollama mode sends prompts to the local Ollama service on this machine."
+        )
 
     st.sidebar.markdown("---")
     st.sidebar.markdown(
@@ -138,7 +140,9 @@ def main():
     use_sample = st.checkbox("Try the fictional demo document", value=False)
 
     if uploaded_file is None and not use_sample:
-        st.info("Upload a PDF to begin, or select the fictional demo to explore the interface.")
+        st.info(
+            "Upload a PDF to begin, or select the fictional demo to explore the interface."
+        )
         st.caption(
             "PaperMind processes uploaded PDF bytes in memory. Scanned/image-only PDFs "
             "are not supported yet because OCR is not included."
