@@ -30,7 +30,13 @@ def test_empty_rebuild_clears_old_vector_index():
 
 @pytest.mark.parametrize(
     "query,top_k",
-    [("", 1), ("  ", 1), ("valid query", 0), ("valid query", -1), ("valid query", True)],
+    [
+        ("", 1),
+        ("  ", 1),
+        ("valid query", 0),
+        ("valid query", -1),
+        ("valid query", True),
+    ],
 )
 def test_vector_search_rejects_invalid_inputs(query, top_k):
     index_mgr = VectorIndex.__new__(VectorIndex)
