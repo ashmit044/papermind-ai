@@ -76,7 +76,7 @@ def test_parse_pdf_bytes_reads_uploaded_document_in_memory():
 
 def test_parser_counts_physical_pdf_pages_and_rejects_image_only_documents():
     document = fitz.open()
-    document.new_page().insert_text((72, 72), "ABSTRACT\\nA readable passage.")
+    document.new_page().insert_text((72, 72), "ABSTRACT\nA readable passage.")
     document.new_page()
     pdf_bytes = document.tobytes()
     document.close()
@@ -96,7 +96,7 @@ def test_parser_counts_physical_pdf_pages_and_rejects_image_only_documents():
 
 def test_parse_raw_text_rejects_empty_content():
     with pytest.raises(ValueError, match="must not be empty"):
-        PaperParser().parse_raw_text("  \\n ")
+        PaperParser().parse_raw_text("  \n ")
 
 
 @pytest.mark.parametrize("content", [b"", b"not a pdf"])
