@@ -26,8 +26,10 @@ def test_summarizer_reports_missing_claims_instead_of_filling_them():
     assert digest["methodology"] == "Not identified in the extracted text."
     assert digest["limitations"] == "Not identified in the extracted text."
     assert digest["key_insights"] == [
-        "No explicit contribution statements were identified by the current "
-        "keyword-based extractor. Review the extracted paper text directly."
+        (
+            "No explicit contribution statements were identified by the current "
+            "keyword-based extractor. Review the extracted paper text directly."
+        )
     ]
 
 
