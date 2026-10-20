@@ -18,7 +18,7 @@ class ConceptGraphExtractor:
 
     def __init__(self, top_n_concepts: int = 15):
         if isinstance(top_n_concepts, bool) or not isinstance(top_n_concepts, int):
-            raise ValueError("top_n_concepts must be a positive integer.")
+            raise TypeError("top_n_concepts must be an integer.")
         if top_n_concepts < 1:
             raise ValueError("top_n_concepts must be a positive integer.")
         self.top_n_concepts = top_n_concepts
