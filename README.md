@@ -10,7 +10,7 @@
 <p align="center">
   <a href="https://github.com/ashmit044/papermind-ai/actions"><img src="https://img.shields.io/github/actions/workflow/status/ashmit044/papermind-ai/ci.yml?branch=main&style=flat-square&logo=github&label=CI" alt="CI Status" /></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/Python-3.12%2B-blue?style=flat-square&logo=python&logoColor=white" alt="Python 3.12+" /></a>
-  <a href="https://streamlit.io"><img src="https://img.shields.io/badge/Streamlit-1.32.0-FF4B4B?style=flat-square&logo=streamlit&logoColor=white" alt="Streamlit" /></a>
+  <a href="https://streamlit.io"><img src="https://img.shields.io/badge/Streamlit-app-FF4B4B?style=flat-square&logo=streamlit&logoColor=white" alt="Streamlit app" /></a>
   <a href="https://huggingface.co"><img src="https://img.shields.io/badge/Embeddings-Sentence--Transformers-yellow?style=flat-square" alt="Sentence-Transformers" /></a>
   <a href="https://github.com/facebookresearch/faiss"><img src="https://img.shields.io/badge/VectorDB-FAISS-purple?style=flat-square" alt="FAISS Vector DB" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/ashmit044/papermind-ai?style=flat-square" alt="License" /></a>
@@ -29,9 +29,9 @@ Whether you prefer a terminal command-line tool with rich formatting or a sleek 
 ## ✨ Core Features
 
 - 📑 **Smart PDF Structure Extraction**: Uses `PyMuPDF` (`fitz`) to parse academic paper sections (*Abstract, Intro, Methods, Experiments, Conclusion*), removing headers/footers and splitting text into overlapping semantic chunks.
-- 🛡️ **Safer PDF Handling**: Uploaded PDF originals are parsed in memory rather than persisted in the local cache. If you select OpenAI for Q&A, retrieved passages are sent to that provider for answer generation.
+- 🛡️ **Local-first PDF Handling**: The web dashboard parses uploaded PDF bytes in memory rather than saving the original upload. The CLI reads a PDF from the path you provide. If you select OpenAI for Q&A, retrieved passages are sent to that provider for answer generation.
 - ⚡ **Local Dense Vector Retrieval (RAG)**: Indexes text chunks with `sentence-transformers/all-MiniLM-L6-v2` and `FAISS` for cosine similarity search with exact page and section citations.
-- 🔎 **Traceable RAG Answers**: Answers cite retrieved passages inline (`[S1]`), mapped to page and section snippets; missing or unknown citations are clearly flagged.
+- 🔎 **Evidence-aware RAG**: Responses use stable source labels (`[S1]`) mapped to page and section snippets. Configurable cosine-similarity filtering excludes weak matches, and unknown or missing citation labels are flagged for review.
 - 📌 **Executive Paper Summaries**: Generates structured executive digests including key takeaways, methodological novelty, and research limitations.
 - 🕸️ **Interactive Concept Knowledge Graph**: Extracts domain concepts and entities into an interactive `NetworkX` & `Plotly` network graph showing central themes and co-occurrence nodes.
 - 🖥️ **Dual Interface**:
@@ -88,6 +88,9 @@ source venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 python -m pip install -e .
+
+# Optional adapters if you plan to use OpenAI or Ollama
+python -m pip install -e ".[openai,ollama]"
 ```
 
 ### 3. Environment Variables (Optional)
@@ -112,12 +115,12 @@ Open `http://localhost:8501` in your browser.
 
 #### 1. Generate Executive Paper Summary & Export Markdown Report
 ```bash
-papermind digest examples/sample_paper.pdf --md --json
+papermind digest /path/to/your-paper.pdf --md --json
 ```
 
 #### 2. Query Paper via Grounded RAG
 ```bash
-papermind ask examples/sample_paper.pdf "What memory complexity improvement does the proposed model achieve?"
+papermind ask /path/to/your-paper.pdf "What methodology does the paper describe?"
 ```
 
 #### 3. Display CLI Version
@@ -142,7 +145,7 @@ graph LR
 
 1. **PDF Processing**: `PaperParser` reads PDF byte streams, detects academic section headings via regex, and creates overlapping `TextChunk` models with page metadata.
 2. **Dense Vector Indexing**: `VectorIndex` computes 384-dimensional normalized vector embeddings using `all-MiniLM-L6-v2` and adds them to a flat inner-product `FAISS` index.
-3. **Retrieval & Synthesis**: `RAGEngine` retrieves top-$K$ semantic matches, constructs grounded context prompts with page attributions, and synthesizes accurate answers.
+3. **Retrieval & Synthesis**: `RAGEngine` retrieves top-$K$ semantic matches, filters weak passages using `PAPERMIND_MIN_SIMILARITY`, and labels source references. In offline mode it surfaces retrieved evidence rather than claiming to run an LLM.
 4. **Graph Construction**: `ConceptGraphExtractor` identifies entity co-occurrences and builds node centrality graphs rendered via Plotly.
 
 ---
@@ -244,6 +247,8 @@ to inspect or extend the labeled cases.
 - [ ] Add PDF visual canvas annotation overlays for retrieved RAG bounding boxes.
 
 ---
+
+The built-in dashboard demo is fictional, clearly labelled, and intended only for exploring the interface. It is not a real publication and its content must not be cited as scientific evidence.
 
 ## 🤝 Contributing
 
