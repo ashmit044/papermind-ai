@@ -35,14 +35,14 @@ graph TD
 - Identifies section headings (*Abstract, Introduction, Methodology, Results, Conclusion, References*) via regular expression patterns.
 - Splits document into overlapping chunks (default: 500 chars with 50 char overlap) preserving section and page metadata.
 
-The dashboard parses uploaded PDF bytes in memory instead of persisting the original file in the cache.
+The dashboard parses uploaded PDF bytes in memory instead of persisting the original file in the cache. The parser preserves the PDF's actual page count and reports when no selectable text is available rather than treating a scanned/image-only PDF as an empty successful parse. OCR is not currently supported.
 
 ### 2. Embeddings & Vector Indexing (`papermind.embeddings`)
 - Powered by `sentence-transformers/all-MiniLM-L6-v2` producing 384-dimensional dense vectors.
 - Leverages **FAISS (`faiss-cpu`)** using Inner Product search over normalized embeddings (equivalent to Cosine Similarity).
 
 ### 3. RAG Q&A Grounding (`papermind.rag_engine`)
-- Queries FAISS index for top-$K$ semantic matches.
+- Queries the FAISS index for top-$K$ semantic matches and filters passages below the configurable `PAPERMIND_MIN_SIMILARITY` threshold.
 - Builds grounded context prompts with stable source labels, exact page number, and section attributions. Generated answers should cite those labels inline; unknown or omitted citations are flagged for review.
 - Treats retrieved document text as untrusted input and instructs LLM providers not to follow instructions embedded in papers.
 - Supports pluggable backends:
@@ -58,7 +58,7 @@ The dashboard parses uploaded PDF bytes in memory instead of persisting the orig
 ### 5. Concept Knowledge Graph (`papermind.graph`)
 - Extracts technical terms, acronyms, and domain concepts.
 - Builds a **NetworkX** co-occurrence graph.
-- Renders interactive HTML/Plotly network visualizations showing node centrality.
+- Renders interactive Plotly co-occurrence visualizations. Node color represents mention frequency, not graph centrality; edges indicate terms found in the same chunk, not causation. The graph does not add placeholder concepts when the source has no recognized terms.
 
 ---
 

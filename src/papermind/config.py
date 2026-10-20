@@ -40,6 +40,12 @@ class AppConfig(BaseModel):
     chunk_overlap: int = Field(
         default_factory=lambda: int(os.getenv("PAPERMIND_CHUNK_OVERLAP", "50"))
     )
+    # Cosine similarity is bounded by [-1, 1] for normalized embeddings.
+    min_similarity_score: float = Field(
+        default_factory=lambda: float(os.getenv("PAPERMIND_MIN_SIMILARITY", "0.20")),
+        ge=-1.0,
+        le=1.0,
+    )
 
     # Directory Settings
     base_dir: Path = Path(__file__).resolve().parent.parent.parent

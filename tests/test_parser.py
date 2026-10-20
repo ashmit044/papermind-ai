@@ -74,6 +74,31 @@ def test_parse_pdf_bytes_reads_uploaded_document_in_memory():
     assert "A useful research finding." in chunks[0].text
 
 
+def test_parser_counts_physical_pdf_pages_and_rejects_image_only_documents():
+    document = fitz.open()
+    document.new_page().insert_text((72, 72), "ABSTRACT\nA readable passage.")
+    document.new_page()
+    pdf_bytes = document.tobytes()
+    document.close()
+
+    metadata, chunks = PaperParser().parse_pdf_bytes(pdf_bytes)
+    assert metadata.page_count == 2
+    assert chunks
+
+    scanned_document = fitz.open()
+    scanned_document.new_page()
+    scanned_bytes = scanned_document.tobytes()
+    scanned_document.close()
+
+    with pytest.raises(ValueError, match="No extractable text"):
+        PaperParser().parse_pdf_bytes(scanned_bytes)
+
+
+def test_parse_raw_text_rejects_empty_content():
+    with pytest.raises(ValueError, match="must not be empty"):
+        PaperParser().parse_raw_text("  \n ")
+
+
 @pytest.mark.parametrize("content", [b"", b"not a pdf"])
 def test_parse_pdf_bytes_rejects_invalid_content(content):
     with pytest.raises(ValueError, match="PDF"):

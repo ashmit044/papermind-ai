@@ -25,23 +25,42 @@ class VectorIndex:
         self.chunks: list[TextChunk] = []
 
     def build_index(self, chunks: list[TextChunk]) -> None:
-        """Compute embeddings for text chunks and populate FAISS index."""
-        if not chunks:
-            logger.warning("Empty chunk list provided for indexing.")
+        """Compute embeddings for text chunks and replace the current FAISS index."""
+        # Clear old state first so a failed or empty rebuild cannot leak stale results.
+        self.index = None
+        self.chunks = []
+        valid_chunks = [chunk for chunk in chunks if chunk.text.strip()]
+        if not valid_chunks:
+            logger.warning(
+                "No non-empty text chunks provided; vector index was cleared."
+            )
             return
 
-        self.chunks = chunks
-        texts = [chunk.text for chunk in chunks]
-
+        texts = [chunk.text for chunk in valid_chunks]
         logger.info(f"Generating embeddings for {len(texts)} document chunks...")
         embeddings = self.model.encode(
             texts, show_progress_bar=False, normalize_embeddings=True
         )
-        embeddings_np = np.array(embeddings, dtype=np.float32)
+        embeddings_np = np.asarray(embeddings, dtype=np.float32)
 
-        # Inner Product on normalized vectors equals Cosine Similarity
-        self.index = faiss.IndexFlatIP(self.dimension)
-        self.index.add(embeddings_np)
+        if embeddings_np.ndim != 2 or embeddings_np.shape[0] != len(valid_chunks):
+            raise ValueError(
+                "Embedding model returned an unexpected number of vectors."
+            )
+        if embeddings_np.shape[1] != self.dimension:
+            raise ValueError(
+                f"Embedding dimension mismatch: expected {self.dimension}, "
+                f"received {embeddings_np.shape[1]}."
+            )
+        if not np.isfinite(embeddings_np).all():
+            raise ValueError("Embedding model returned non-finite vector values.")
+
+        embeddings_np = np.ascontiguousarray(embeddings_np)
+        # Inner Product on normalized vectors equals Cosine Similarity.
+        index = faiss.IndexFlatIP(self.dimension)
+        index.add(embeddings_np)
+        self.index = index
+        self.chunks = valid_chunks
 
         logger.info(
             f"Successfully built FAISS index with {self.index.ntotal} vectors (dim={self.dimension})"
@@ -49,6 +68,10 @@ class VectorIndex:
 
     def search(self, query: str, top_k: int = 4) -> list[tuple[TextChunk, float]]:
         """Perform semantic search for query and return top_k matching chunks with similarity scores."""
+        if not isinstance(query, str) or not query.strip():
+            raise ValueError("Search query must not be empty.")
+        if isinstance(top_k, bool) or not isinstance(top_k, int) or top_k < 1:
+            raise ValueError("top_k must be a positive integer.")
         if self.index is None or self.index.ntotal == 0:
             logger.error(
                 "FAISS index is uninitialized or empty. Call build_index first."

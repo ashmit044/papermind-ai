@@ -25,11 +25,11 @@ class PaperSummarizer:
         methodology = (
             self._extract_section_summary("Methodology")
             or self._extract_section_summary("Methods")
-            or "The methodology involves algorithmic formulation and empirical evaluation."
+            or "Not identified in the extracted text."
         )
         limitations = (
             self._extract_section_summary("Discussion")
-            or "Future work includes expanding benchmark datasets and scaling model parameter size."
+            or "Not identified in the extracted text."
         )
 
         digest = {
@@ -84,10 +84,10 @@ class PaperSummarizer:
 
         if not insights:
             insights = [
-                f"Presents novel algorithmic framework for {self.metadata.title}.",
-                "Demonstrates significant performance gains across benchmark evaluations.",
-                "Provides comprehensive quantitative and qualitative empirical analysis.",
-                "Establishes a solid baseline for future open-source research extensions.",
+                (
+                    "No explicit contribution statements were identified by the current "
+                    "keyword-based extractor. Review the extracted paper text directly."
+                )
             ]
 
         return insights
