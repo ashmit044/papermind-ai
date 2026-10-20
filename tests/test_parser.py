@@ -74,6 +74,19 @@ def test_parse_pdf_bytes_reads_uploaded_document_in_memory():
     assert "A useful research finding." in chunks[0].text
 
 
+def test_page_count_includes_blank_pages_and_preserves_chunk_page_numbers():
+    document = fitz.open()
+    document.new_page().insert_text((72, 72), "Abstract\nFinding on the first page.")
+    document.new_page()
+    document.new_page().insert_text((72, 72), "Results\nFinding on the third page.")
+
+    metadata, chunks = PaperParser().parse_pdf_bytes(document.tobytes())
+    document.close()
+
+    assert metadata.page_count == 3
+    assert {chunk.page_num for chunk in chunks} == {1, 3}
+
+
 @pytest.mark.parametrize("content", [b"", b"not a pdf"])
 def test_parse_pdf_bytes_rejects_invalid_content(content):
     with pytest.raises(ValueError, match="PDF"):

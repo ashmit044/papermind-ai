@@ -109,7 +109,7 @@ class PaperParser:
         doc_meta = DocumentMetadata(
             title=title,
             author=author,
-            page_count=len(raw_pages),
+            page_count=len(doc),
             sections=detected_sections if detected_sections else ["Full Document"],
         )
 
