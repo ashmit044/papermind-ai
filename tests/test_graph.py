@@ -25,7 +25,7 @@ def test_graph_does_not_inject_placeholder_concepts():
 
 def test_graph_contains_only_extracted_terms_and_labels_frequency_truthfully():
     graph, nodes = ConceptGraphExtractor(top_n_concepts=10).build_graph(
-        [make_chunk("Transformer FAISS Retrieval Transformer")]
+        [make_chunk("Transformer, FAISS, Retrieval, Transformer")]
     )
 
     assert set(graph.nodes) == {"Transformer", "FAISS", "Retrieval"}
