@@ -35,7 +35,7 @@ Whether you prefer a terminal command-line tool with rich formatting or a sleek 
 - 📌 **Executive Paper Summaries**: Generates structured executive digests including key takeaways, methodological novelty, and research limitations.
 - 🕸️ **Interactive Concept Knowledge Graph**: Extracts domain concepts and entities into an interactive `NetworkX` & `Plotly` network graph showing central themes and co-occurrence nodes.
 - 🖥️ **Dual Interface**:
-  - **Streamlit Web Dashboard**: Interactive UI with dark-glassmorphism theme, tabbed navigation, and download options.
+  - **Streamlit Web Dashboard**: A focused paper workspace that keeps the digest, question form, and cited passages together, with a separate concept graph view.
   - **Rich CLI Utility**: Powered by `typer` and `rich` for quick command-line batch processing.
 - 📤 **Multi-Format Export**: Export digests to clean Markdown reports or structured JSON files.
 - 🐳 **Docker & CI Ready**: Full Docker containerization and GitHub Actions workflow for automated linting and unit testing with `pytest`.
@@ -45,17 +45,17 @@ Whether you prefer a terminal command-line tool with rich formatting or a sleek 
 ## 📸 Screenshots
 
 <p align="center">
-  <img src="assets/screenshots/dashboard_overview.png" alt="Streamlit Dashboard Overview" width="85%" />
+  <img src="assets/screenshots/paper_workspace.png" alt="PaperMind workspace showing the paper digest and an honest empty state for retrieved sources" width="85%" />
   <br/>
-  <i>Streamlit Web Dashboard — Paper Executive Digest & Key Insights</i>
+  <i>Paper workspace — the included synthetic demo is labeled as demonstration content.</i>
 </p>
 
 <br/>
 
 <p align="center">
-  <img src="assets/screenshots/rag_qa.png" alt="Grounded RAG Q&A Interface" width="85%" />
+  <img src="assets/screenshots/paper_question_sources.png" alt="PaperMind question form with retrieved, page-labeled source passages" width="85%" />
   <br/>
-  <i>Grounded RAG Q&A Tab — Querying Papers with Inline Citations</i>
+  <i>Question flow — retrieved passages retain their page and section labels.</i>
 </p>
 
 <br/>
