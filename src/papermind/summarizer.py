@@ -84,8 +84,10 @@ class PaperSummarizer:
 
         if not insights:
             insights = [
-                "No explicit contribution statements were identified by the current "
-                "keyword-based extractor. Review the extracted paper text directly."
+                (
+                    "No explicit contribution statements were identified by the current "
+                    "keyword-based extractor. Review the extracted paper text directly."
+                )
             ]
 
         return insights
