@@ -35,7 +35,7 @@ def test_graph_contains_only_extracted_terms_and_labels_frequency_truthfully():
     figure = ConceptGraphExtractor().create_plotly_figure(graph)
     node_trace = figure.data[1]
     assert list(node_trace.marker.color) == [1, 1, 1]
-    assert node_trace.marker.colorbar.title.text == "Mention Frequency"
+    assert node_trace.marker.colorbar.title.text == "Chunks Containing Concept"
 
 
 def test_graph_requires_positive_concept_limit():
