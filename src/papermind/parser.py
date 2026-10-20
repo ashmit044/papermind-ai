@@ -79,8 +79,8 @@ class PaperParser:
 
         try:
             document = fitz.open(stream=content, filetype="pdf")
-        except fitz.FileDataError as error:
-            raise ValueError("Uploaded content is not a valid PDF.") from error
+        except (fitz.FileDataError, RuntimeError, ValueError) as error:
+            raise ValueError("Uploaded content is not a readable PDF.") from error
 
         logger.info("Extracting uploaded PDF content in memory")
         with document:
@@ -91,6 +91,10 @@ class PaperParser:
     ) -> tuple[DocumentMetadata, list[TextChunk]]:
         """Extract metadata and chunks from an already-open PDF document."""
 
+        if getattr(doc, "needs_pass", False):
+            raise ValueError("This PDF is password-protected and cannot be read.")
+
+        page_count = len(doc)
         metadata_dict = doc.metadata or {}
         title = metadata_dict.get("title") or fallback_title
         author = metadata_dict.get("author") or "Unknown Author"
@@ -103,13 +107,19 @@ class PaperParser:
             if cleaned_text:
                 raw_pages.append((page_idx + 1, cleaned_text))
 
+        if not raw_pages:
+            raise ValueError(
+                "No extractable text was found in this PDF. It may be scanned or image-only; "
+                "OCR is not currently supported."
+            )
+
         # Extract structured sections
         chunks, detected_sections = self._chunk_document(raw_pages, title)
 
         doc_meta = DocumentMetadata(
             title=title,
             author=author,
-            page_count=len(raw_pages),
+            page_count=page_count,
             sections=detected_sections if detected_sections else ["Full Document"],
         )
 
@@ -123,6 +133,8 @@ class PaperParser:
     ) -> tuple[DocumentMetadata, list[TextChunk]]:
         """Parse raw text string directly without PDF input (useful for testing & text files)."""
         cleaned = self._clean_page_text(text)
+        if not cleaned:
+            raise ValueError("Document text must not be empty.")
         raw_pages = [(1, cleaned)]
         chunks, detected_sections = self._chunk_document(raw_pages, title)
 
