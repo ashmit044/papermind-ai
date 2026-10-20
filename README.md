@@ -29,6 +29,7 @@ Whether you prefer a terminal command-line tool with rich formatting or a sleek 
 ## ✨ Core Features
 
 - 📑 **Smart PDF Structure Extraction**: Uses `PyMuPDF` (`fitz`) to parse academic paper sections (*Abstract, Intro, Methods, Experiments, Conclusion*), removing headers/footers and splitting text into overlapping semantic chunks.
+- 🛡️ **Safer PDF Handling**: Uploaded PDF originals are parsed in memory rather than persisted in the local cache. If you select OpenAI for Q&A, retrieved passages are sent to that provider for answer generation.
 - ⚡ **Local Dense Vector Retrieval (RAG)**: Indexes text chunks with `sentence-transformers/all-MiniLM-L6-v2` and `FAISS` for cosine similarity search with exact page and section citations.
 - 🔎 **Traceable RAG Answers**: Answers cite retrieved passages inline (`[S1]`), mapped to page and section snippets; missing or unknown citations are clearly flagged.
 - 📌 **Executive Paper Summaries**: Generates structured executive digests including key takeaways, methodological novelty, and research limitations.

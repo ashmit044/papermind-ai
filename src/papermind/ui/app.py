@@ -125,12 +125,9 @@ def main():
                 file_contents = uploaded_file.getvalue()
                 document_id = document_fingerprint(file_contents)
                 safe_filename = Path(uploaded_file.name).name or "uploaded_document.pdf"
-                temp_path = config.cache_dir / f"{document_id}.pdf"
-                with open(temp_path, "wb") as f:
-                    f.write(file_contents)
                 fallback_title = Path(safe_filename).stem.replace("_", " ").title()
-                meta, chunks = parser.parse_pdf(
-                    temp_path, fallback_title=fallback_title
+                meta, chunks = parser.parse_pdf_bytes(
+                    file_contents, fallback_title=fallback_title
                 )
             else:
                 sample_text = sample_document_text()

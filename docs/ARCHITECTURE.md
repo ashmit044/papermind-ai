@@ -35,6 +35,8 @@ graph TD
 - Identifies section headings (*Abstract, Introduction, Methodology, Results, Conclusion, References*) via regular expression patterns.
 - Splits document into overlapping chunks (default: 500 chars with 50 char overlap) preserving section and page metadata.
 
+The dashboard parses uploaded PDF bytes in memory instead of persisting the original file in the cache.
+
 ### 2. Embeddings & Vector Indexing (`papermind.embeddings`)
 - Powered by `sentence-transformers/all-MiniLM-L6-v2` producing 384-dimensional dense vectors.
 - Leverages **FAISS (`faiss-cpu`)** using Inner Product search over normalized embeddings (equivalent to Cosine Similarity).
@@ -47,6 +49,7 @@ graph TD
   - **Offline Synthesizer**: Fast standalone extraction without requiring API keys.
   - **Ollama**: Local `llama3` LLM execution.
   - **OpenAI**: `gpt-3.5-turbo` endpoint.
+- The OpenAI backend receives retrieved text context; users should avoid selecting it for sensitive documents unless that data flow is acceptable.
 
 ### 4. Executive Paper Digest (`papermind.summarizer`)
 - Extracts executive overview, core methodology, and key takeaways.

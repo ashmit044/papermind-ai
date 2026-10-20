@@ -59,6 +59,27 @@ def test_parse_pdf_uses_upload_name_when_pdf_has_no_title(tmp_path):
     assert metadata.title == "Uploaded Paper"
 
 
+def test_parse_pdf_bytes_reads_uploaded_document_in_memory():
+    document = fitz.open()
+    document.new_page().insert_text((72, 72), "ABSTRACT\nA useful research finding.")
+    pdf_bytes = document.tobytes()
+    document.close()
+
+    metadata, chunks = PaperParser().parse_pdf_bytes(
+        pdf_bytes, fallback_title="Memory Paper"
+    )
+
+    assert metadata.title == "Memory Paper"
+    assert chunks
+    assert "A useful research finding." in chunks[0].text
+
+
+@pytest.mark.parametrize("content", [b"", b"not a pdf"])
+def test_parse_pdf_bytes_rejects_invalid_content(content):
+    with pytest.raises(ValueError, match="PDF"):
+        PaperParser().parse_pdf_bytes(content)
+
+
 @pytest.mark.parametrize(
     "chunk_size, chunk_overlap",
     [(0, 0), (-1, 0), (100, -1), (100, 100)],

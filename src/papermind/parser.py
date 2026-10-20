@@ -65,14 +65,34 @@ class PaperParser:
             raise FileNotFoundError(f"PDF file not found at: {pdf_path}")
 
         logger.info(f"Extracting document text from PDF: {pdf_path.name}")
-        doc = fitz.open(pdf_path)
+        with fitz.open(pdf_path) as doc:
+            return self._parse_open_document(
+                doc, fallback_title or pdf_path.stem.replace("_", " ").title()
+            )
+
+    def parse_pdf_bytes(
+        self, content: bytes, fallback_title: str = "Uploaded Document"
+    ) -> tuple[DocumentMetadata, list[TextChunk]]:
+        """Parse uploaded PDF bytes in memory without persisting the original file."""
+        if not content:
+            raise ValueError("PDF content must not be empty.")
+
+        try:
+            document = fitz.open(stream=content, filetype="pdf")
+        except fitz.FileDataError as error:
+            raise ValueError("Uploaded content is not a valid PDF.") from error
+
+        logger.info("Extracting uploaded PDF content in memory")
+        with document:
+            return self._parse_open_document(document, fallback_title)
+
+    def _parse_open_document(
+        self, doc: fitz.Document, fallback_title: str
+    ) -> tuple[DocumentMetadata, list[TextChunk]]:
+        """Extract metadata and chunks from an already-open PDF document."""
 
         metadata_dict = doc.metadata or {}
-        title = (
-            metadata_dict.get("title")
-            or fallback_title
-            or pdf_path.stem.replace("_", " ").title()
-        )
+        title = metadata_dict.get("title") or fallback_title
         author = metadata_dict.get("author") or "Unknown Author"
 
         raw_pages: list[tuple[int, str]] = []
@@ -82,8 +102,6 @@ class PaperParser:
             cleaned_text = self._clean_page_text(text)
             if cleaned_text:
                 raw_pages.append((page_idx + 1, cleaned_text))
-
-        doc.close()
 
         # Extract structured sections
         chunks, detected_sections = self._chunk_document(raw_pages, title)
