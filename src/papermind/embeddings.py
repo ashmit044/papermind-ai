@@ -31,7 +31,9 @@ class VectorIndex:
         self.chunks = []
         valid_chunks = [chunk for chunk in chunks if chunk.text.strip()]
         if not valid_chunks:
-            logger.warning("No non-empty text chunks provided; vector index was cleared.")
+            logger.warning(
+                "No non-empty text chunks provided; vector index was cleared."
+            )
             return
 
         texts = [chunk.text for chunk in valid_chunks]
@@ -42,7 +44,9 @@ class VectorIndex:
         embeddings_np = np.asarray(embeddings, dtype=np.float32)
 
         if embeddings_np.ndim != 2 or embeddings_np.shape[0] != len(valid_chunks):
-            raise ValueError("Embedding model returned an unexpected number of vectors.")
+            raise ValueError(
+                "Embedding model returned an unexpected number of vectors."
+            )
         if embeddings_np.shape[1] != self.dimension:
             raise ValueError(
                 f"Embedding dimension mismatch: expected {self.dimension}, "
