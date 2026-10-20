@@ -64,9 +64,7 @@ def test_rag_engine_filters_passages_below_relevance_threshold():
     )
     index = StubVectorIndex([(first, 0.85), (second, 0.32)])
 
-    engine = RAGEngine(
-        index, llm_provider="offline", min_similarity_score=0.5
-    )
+    engine = RAGEngine(index, llm_provider="offline", min_similarity_score=0.5)
     response = engine.query("How does Transformer retrieval work?")
 
     assert [source.chunk_id for source in response.sources] == [0]
