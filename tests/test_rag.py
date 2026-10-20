@@ -64,9 +64,10 @@ def test_rag_engine_filters_passages_below_relevance_threshold():
     )
     index = StubVectorIndex([(first, 0.85), (second, 0.32)])
 
-    response = RAGEngine(
+    engine = RAGEngine(
         index, llm_provider="offline", min_similarity_score=0.5
-    ).query("How does Transformer retrieval work?")
+    )
+    response = engine.query("How does Transformer retrieval work?")
 
     assert [source.chunk_id for source in response.sources] == [0]
     assert "[S1]" in response.answer
@@ -81,11 +82,12 @@ def test_rag_engine_returns_no_sources_when_all_passages_are_below_threshold():
         section_name="Results",
         char_count=40,
     )
-    response = RAGEngine(
+    engine = RAGEngine(
         StubVectorIndex([(chunk, 0.1)]),
         llm_provider="offline",
         min_similarity_score=0.5,
-    ).query("What is the orbital period of Mars?")
+    )
+    response = engine.query("What is the orbital period of Mars?")
 
     assert response.sources == []
     assert "relevance threshold" in response.answer
