@@ -4,6 +4,33 @@ from papermind.parser import DocumentMetadata, TextChunk
 from papermind.summarizer import PaperSummarizer
 
 
+def test_summarizer_reports_missing_claims_instead_of_filling_them():
+    metadata = DocumentMetadata(
+        title="A Paper Without Explicit Findings",
+        author="Unknown Author",
+        page_count=1,
+        sections=["Full Document"],
+    )
+    chunks = [
+        TextChunk(
+            chunk_id=0,
+            text="This document contains a neutral description of a research topic.",
+            page_num=1,
+            section_name="Full Document",
+            char_count=65,
+        )
+    ]
+
+    digest = PaperSummarizer(metadata, chunks).generate_digest()
+
+    assert digest["methodology"] == "Not identified in the extracted text."
+    assert digest["limitations"] == "Not identified in the extracted text."
+    assert digest["key_insights"] == [
+        "No explicit contribution statements were identified by the current "
+        "keyword-based extractor. Review the extracted paper text directly."
+    ]
+
+
 def test_paper_summarizer_digest():
     meta = DocumentMetadata(
         title="Attention Is All You Need",
