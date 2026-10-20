@@ -274,9 +274,7 @@ def main():
                 st.caption(f"Details: {error}")
                 st.stop()
 
-        rag = RAGEngine(
-            st.session_state.vector_index, llm_provider=selected_provider
-        )
+        rag = RAGEngine(st.session_state.vector_index, llm_provider=selected_provider)
 
         user_query = st.text_input(
             "Enter your question about the paper:",
@@ -284,9 +282,7 @@ def main():
         )
 
         if user_query:
-            with st.spinner(
-                "Retrieving semantic context and synthesizing answer..."
-            ):
+            with st.spinner("Retrieving semantic context and synthesizing answer..."):
                 response = rag.query(user_query, top_k=3)
                 st.markdown("#### 🤖 Grounded AI Answer")
                 st.success(response.answer)
