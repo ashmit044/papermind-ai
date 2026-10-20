@@ -47,6 +47,67 @@ def test_rag_engine_query():
     assert resp.sources[0].page_num == 1
 
 
+def test_rag_engine_filters_passages_below_relevance_threshold():
+    first = TextChunk(
+        chunk_id=0,
+        text="Transformer retrieval uses semantic similarity.",
+        page_num=1,
+        section_name="Methodology",
+        char_count=48,
+    )
+    second = TextChunk(
+        chunk_id=1,
+        text="A separate passage with weak similarity.",
+        page_num=2,
+        section_name="Discussion",
+        char_count=40,
+    )
+    index = StubVectorIndex([(first, 0.85), (second, 0.32)])
+
+    response = RAGEngine(
+        index, llm_provider="offline", min_similarity_score=0.5
+    ).query("How does Transformer retrieval work?")
+
+    assert [source.chunk_id for source in response.sources] == [0]
+    assert "[S1]" in response.answer
+    assert "[S2]" not in response.answer
+
+
+def test_rag_engine_returns_no_sources_when_all_passages_are_below_threshold():
+    chunk = TextChunk(
+        chunk_id=0,
+        text="The source is unrelated to this question.",
+        page_num=1,
+        section_name="Results",
+        char_count=40,
+    )
+    response = RAGEngine(
+        StubVectorIndex([(chunk, 0.1)]),
+        llm_provider="offline",
+        min_similarity_score=0.5,
+    ).query("What is the orbital period of Mars?")
+
+    assert response.sources == []
+    assert "relevance threshold" in response.answer
+
+
+@pytest.mark.parametrize("threshold", [-1.1, 1.1, True, "0.2"])
+def test_rag_engine_rejects_invalid_similarity_threshold(threshold):
+    with pytest.raises(ValueError, match="min_similarity_score"):
+        RAGEngine(object(), min_similarity_score=threshold)
+
+
+def test_openai_provider_without_key_does_not_silently_fall_back(monkeypatch):
+    from papermind import rag_engine
+
+    monkeypatch.setattr(rag_engine.config, "openai_api_key", None)
+    engine = RAGEngine(object(), llm_provider="openai")
+    answer = engine._generate_answer("question", "source context")
+
+    assert "OPENAI_API_KEY" in answer
+    assert "offline synthesizer" in answer
+
+
 def test_rag_engine_rejects_empty_questions_and_invalid_top_k():
     rag = RAGEngine(vector_index=object(), llm_provider="offline")
 
