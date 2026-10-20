@@ -141,7 +141,10 @@ class ConceptGraphExtractor:
                 "size": node_size,
                 "colorbar": {
                     "thickness": 15,
-                    "title": {"text": "Chunks Containing Concept", "font": {"color": "white"}},
+                    "title": {
+                        "text": "Chunks Containing Concept",
+                        "font": {"color": "white"},
+                    },
                     "xanchor": "left",
                     "tickfont": {"color": "white"},
                 },
