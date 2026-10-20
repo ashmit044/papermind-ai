@@ -57,5 +57,10 @@ PAPERMIND_LLM_PROVIDER=offline
 PAPERMIND_EMBEDDING_MODEL=all-MiniLM-L6-v2
 PAPERMIND_CHUNK_SIZE=500
 PAPERMIND_CHUNK_OVERLAP=50
+PAPERMIND_MIN_SIMILARITY=0.20
 OPENAI_API_KEY=your_key_here
 ```
+
+`PAPERMIND_MIN_SIMILARITY` is a cosine-similarity threshold between -1 and 1. Only retrieved passages at or above the threshold are used as evidence; lower the value cautiously if useful passages are being missed.
+
+OpenAI mode sends retrieved passages to OpenAI for answer generation. Ollama mode uses a local Ollama service. Install the optional adapters with `python -m pip install -e ".[openai,ollama]"` when using those providers.
