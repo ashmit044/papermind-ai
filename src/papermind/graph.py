@@ -17,6 +17,10 @@ class ConceptGraphExtractor:
     """Extracts entity and concept relationships into an interactive NetworkX graph."""
 
     def __init__(self, top_n_concepts: int = 15):
+        if isinstance(top_n_concepts, bool) or not isinstance(top_n_concepts, int):
+            raise ValueError("top_n_concepts must be a positive integer.")
+        if top_n_concepts < 1:
+            raise ValueError("top_n_concepts must be a positive integer.")
         self.top_n_concepts = top_n_concepts
 
     def build_graph(
@@ -68,20 +72,7 @@ class ConceptGraphExtractor:
         sorted_concepts = sorted(concept_freq.items(), key=lambda x: x[1], reverse=True)
         top_concepts = {item[0] for item in sorted_concepts[: self.top_n_concepts]}
 
-        # Fallback if few capitalized words are found
-        if len(top_concepts) < 5:
-            top_concepts.update(
-                [
-                    "Embedding",
-                    "Transformer",
-                    "Attention",
-                    "Encoder",
-                    "Loss Function",
-                    "Dataset",
-                    "Accuracy",
-                ]
-            )
-
+        # Do not add canned concepts: every displayed node must come from the paper.
         G = nx.Graph()
         for concept in top_concepts:
             G.add_node(concept, freq=concept_freq.get(concept, 1))
@@ -123,6 +114,7 @@ class ConceptGraphExtractor:
         node_x = []
         node_y = []
         node_text = []
+        node_frequency = []
         node_size = []
 
         for node in G.nodes():
@@ -131,7 +123,8 @@ class ConceptGraphExtractor:
             node_y.append(y)
             freq = G.nodes[node].get("freq", 1)
             node_text.append(f"Concept: {node}<br>Mentions: {freq}")
-            node_size.append(15 + freq * 2)
+            node_frequency.append(freq)
+            node_size.append(12 + min(freq, 20) * 1.5)
 
         node_trace = go.Scatter(
             x=node_x,
@@ -144,11 +137,11 @@ class ConceptGraphExtractor:
             marker={
                 "showscale": True,
                 "colorscale": "Viridis",
-                "color": node_size,
+                "color": node_frequency,
                 "size": node_size,
                 "colorbar": {
                     "thickness": 15,
-                    "title": {"text": "Node Centrality", "font": {"color": "white"}},
+                    "title": {"text": "Mention Frequency", "font": {"color": "white"}},
                     "xanchor": "left",
                     "tickfont": {"color": "white"},
                 },
