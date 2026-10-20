@@ -163,7 +163,7 @@ def main():
                     sample_text,
                     title="Fictional ExampleStudy (demo content)",
                 )
-    except Exception as error:
+    except (OSError, RuntimeError, ValueError) as error:
         st.error(f"PaperMind could not process this document: {error}")
         st.caption(
             "Try a valid, non-password-protected PDF with selectable text. "
@@ -262,7 +262,7 @@ def main():
                     idx_mgr.build_index(chunks)
                     st.session_state.vector_index = idx_mgr
                     st.session_state.current_doc_id = document_id
-            except Exception as error:
+            except (ImportError, OSError, RuntimeError, ValueError) as error:
                 st.error(
                     "The local embedding model or vector index could not be initialized. "
                     "Check model-download access and available memory."
