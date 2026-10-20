@@ -85,8 +85,9 @@ source venv/bin/activate
 
 ### 2. Install Dependencies
 ```bash
-pip install -r requirements.txt
-pip install -e .
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m pip install -e .
 ```
 
 ### 3. Environment Variables (Optional)
@@ -231,13 +232,15 @@ black --check src tests
 
 ## 🤝 Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to check out the [Issues](https://github.com/ashmit044/papermind-ai/issues) page.
+Contributions, bug reports, and feature ideas are welcome. Please read the
+[contribution guide](CONTRIBUTING.md) before opening a pull request, and use the
+[issue templates](https://github.com/ashmit044/papermind-ai/issues/new/choose) to
+report a problem or propose a feature. When available, issues labelled
+`good first issue` or `help wanted` are good starting points.
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'feat: Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+PaperMind is evolving; proposed features should describe the user problem and
+how the result can be tested. Please don't upload papers unless you have the
+right to share them.
 
 ---
 
