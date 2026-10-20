@@ -130,14 +130,19 @@ class RAGEngine:
         )
 
     def _generate_answer(self, question: str, context: str) -> str:
-        """Synthesize answer using selected LLM provider or smart offline extraction."""
-        if self.llm_provider == "openai" and config.openai_api_key:
+        """Synthesize an answer without silently pretending a missing provider worked."""
+        if self.llm_provider == "openai":
+            if not config.openai_api_key:
+                return (
+                    "OpenAI is selected, but OPENAI_API_KEY is not configured. "
+                    "Add the key to your environment or select the offline synthesizer. "
+                    "The retrieved passages are available in the source panel."
+                )
             return self._query_openai(question, context)
-        elif self.llm_provider == "ollama":
+        if self.llm_provider == "ollama":
             return self._query_ollama(question, context)
-        else:
-            # Standalone smart offline response synthesis
-            return self._offline_synthesis(question, context)
+        # The offline synthesizer quotes retrieved evidence; it does not call an LLM.
+        return self._offline_synthesis(question, context)
 
     def _offline_synthesis(self, question: str, context: str) -> str:
         """Return relevant retrieved evidence with its stable source label."""
@@ -214,10 +219,12 @@ class RAGEngine:
         try:
             from openai import OpenAI, OpenAIError
         except ImportError as e:
-            logger.error(
-                f"OpenAI SDK unavailable: {e}. Falling back to offline synthesis."
+            logger.error(f"OpenAI SDK unavailable: {e}")
+            return (
+                "OpenAI was selected, but its Python SDK is not installed. Install it with "
+                "`pip install -e '.[openai]'` or choose the offline synthesizer. "
+                "The retrieved passages are available in the source panel."
             )
-            return self._offline_synthesis(question, context)
 
         try:
             client = OpenAI(api_key=config.openai_api_key)
@@ -244,20 +251,24 @@ class RAGEngine:
             )
             return response.choices[0].message.content or "No response generated."
         except OpenAIError as e:
-            logger.error(
-                f"OpenAI API call failed: {e}. Falling back to offline synthesis."
+            logger.error(f"OpenAI API call failed: {e}")
+            return (
+                "The OpenAI request failed, so no provider-generated answer was produced. "
+                "Check the API key, connectivity, and provider status. Retrieved evidence "
+                "is shown below using the offline passage extractor.\n\n"
+                + self._offline_synthesis(question, context)
             )
-            return self._offline_synthesis(question, context)
 
     def _query_ollama(self, question: str, context: str) -> str:
         """Query local Ollama instance if available."""
         try:
             import requests
         except ImportError as e:
-            logger.error(
-                f"Requests package unavailable: {e}. Falling back to offline synthesis."
+            logger.error(f"Requests package unavailable: {e}")
+            return (
+                "Ollama support requires the requests package. Install it with "
+                "`pip install -e '.[ollama]'` or choose the offline synthesizer."
             )
-            return self._offline_synthesis(question, context)
 
         try:
             prompt = (
@@ -274,10 +285,17 @@ class RAGEngine:
             )
             if resp.status_code == 200:
                 return resp.json().get("response", "")
-            else:
-                return self._offline_synthesis(question, context)
-        except (requests.RequestException, ValueError) as e:
-            logger.error(
-                f"Ollama connection error: {e}. Falling back to offline synthesis."
+            logger.error("Ollama returned HTTP status %s", resp.status_code)
+            return (
+                f"Ollama returned HTTP status {resp.status_code}; showing retrieved "
+                "evidence with the offline passage extractor instead.\n\n"
+                + self._offline_synthesis(question, context)
             )
-            return self._offline_synthesis(question, context)
+        except (requests.RequestException, ValueError) as e:
+            logger.error(f"Ollama connection error: {e}")
+            return (
+                "Ollama could not be reached, so no Ollama-generated answer was produced. "
+                "Check that Ollama is running locally. Retrieved evidence is shown below "
+                "using the offline passage extractor.\n\n"
+                + self._offline_synthesis(question, context)
+            )
