@@ -29,34 +29,107 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom CSS for Dark Glassmorphism Styling
+# Paper-like surfaces, restrained color, and clear reading hierarchy.
 st.markdown(
     """
 <style>
-    .main {
-        background-color: #0f172a;
-        color: #f8fafc;
+    :root {
+        --paper-bg: #f7f9fc;
+        --paper-surface: #ffffff;
+        --paper-ink: #17243a;
+        --paper-muted: #52627a;
+        --paper-line: #dce4ee;
+        --paper-accent: #1769aa;
     }
-    .stApp header {
-        background-color: transparent;
+    .stApp, [data-testid="stAppViewContainer"] {
+        background: var(--paper-bg);
+        color: var(--paper-ink);
     }
-    div[data-testid="stSidebar"] {
-        background-color: #1e293b;
-        border-right: 1px solid #334155;
+    .stApp {
+        --primary-color: #1769aa;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
-    .metric-card {
-        background: rgba(30, 41, 59, 0.7);
-        border: 1px solid #334155;
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 12px;
+    .main .block-container {
+        max-width: 1440px;
+        padding-top: 2rem;
+        padding-bottom: 3rem;
     }
-    .stButton>button {
-        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-        color: white;
+    [data-testid="stHeader"] {
+        background: rgba(247, 249, 252, 0.92);
+    }
+    [data-testid="stSidebar"] {
+        background: var(--paper-surface);
+        border-right: 1px solid var(--paper-line);
+    }
+    [data-testid="stSidebar"] h1,
+    [data-testid="stSidebar"] h2,
+    [data-testid="stSidebar"] h3,
+    [data-testid="stHeading"] h1,
+    [data-testid="stHeading"] h2,
+    .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
+        color: var(--paper-ink);
+        letter-spacing: -0.025em;
+    }
+    [data-testid="stHeading"] h1,
+    [data-testid="stHeading"] h2,
+    .stMarkdown h1, .stMarkdown h2 {
+        font-family: Georgia, "Times New Roman", serif;
+        font-weight: 500;
+    }
+    p, label, .stCaption, [data-testid="stCaptionContainer"] {
+        color: var(--paper-muted);
+    }
+    [data-baseweb="tab-list"] {
+        gap: 1.5rem;
+        border-bottom: 1px solid var(--paper-line);
+    }
+    [data-baseweb="tab"] {
+        color: var(--paper-muted);
+        padding-left: 0.15rem;
+        padding-right: 0.15rem;
+    }
+    [aria-selected="true"][data-baseweb="tab"] {
+        color: var(--paper-accent);
+    }
+    [data-testid="stFileUploaderDropzone"] {
+        background: var(--paper-surface);
+        border: 1px dashed #b9c8d9;
         border-radius: 8px;
-        border: none;
+    }
+    .stButton > button, .stDownloadButton > button {
+        border-radius: 6px;
+        border: 1px solid #b8c8d9;
         font-weight: 600;
+        color: var(--paper-ink);
+        background: var(--paper-surface);
+    }
+    .stButton > button:hover, .stDownloadButton > button:hover {
+        border-color: var(--paper-accent);
+        color: var(--paper-accent);
+    }
+    [data-testid="stTextInput"] input {
+        background: var(--paper-surface);
+        border-color: #c8d4e2;
+        border-radius: 6px;
+    }
+    [data-testid="stMetric"] {
+        background: transparent;
+        border-left: 2px solid var(--paper-line);
+        padding-left: 0.85rem;
+    }
+    [data-testid="stMetricLabel"] {
+        color: var(--paper-muted);
+    }
+    [data-testid="stAlert"] {
+        border-radius: 6px;
+    }
+    @media (max-width: 768px) {
+        .main .block-container {
+            padding: 1.25rem 1rem 2rem;
+        }
+        [data-baseweb="tab-list"] {
+            gap: 0.6rem;
+        }
     }
 </style>
 """,
@@ -85,11 +158,11 @@ def sample_document_text() -> str:
 
 
 def main():
-    st.sidebar.title("🧠 PaperMind AI")
-    st.sidebar.caption("Academic Paper Digest & Local RAG Assistant")
+    st.sidebar.title("PaperMind")
+    st.sidebar.caption("Research paper workspace")
 
     st.sidebar.markdown("---")
-    st.sidebar.subheader("⚙️ Settings")
+    st.sidebar.subheader("Answer settings")
     llm_option = st.sidebar.selectbox(
         "LLM Synthesis Backend",
         ["Offline Synthesizer (Fast)", "Ollama (Local Llama3)", "OpenAI GPT-3.5"],
@@ -104,18 +177,22 @@ def main():
     selected_provider = provider_map[llm_option]
 
     st.sidebar.markdown("---")
-    st.sidebar.markdown(
-        "💡 **Tip:** Upload any PDF or use the sample paper below for instant testing."
+    st.sidebar.subheader("Paper")
+    uploaded_file = st.sidebar.file_uploader("Upload academic PDF", type=["pdf"])
+    use_sample = st.sidebar.checkbox(
+        "Explore the synthetic demo paper", value=uploaded_file is None
     )
 
-    # Main Title Header
-    st.title("📄 PaperMind AI Research Digest")
+    st.sidebar.markdown("---")
+    st.sidebar.caption(
+        "Uploaded PDF originals are parsed in memory. Provider settings determine "
+        "whether retrieved passages leave your device."
+    )
+
+    st.title("PaperMind")
     st.write(
-        "Upload a research paper PDF to extract executive summaries, query using RAG, and visualize knowledge graphs."
+        "Read, question, and explore a research paper with its sources close at hand."
     )
-
-    uploaded_file = st.file_uploader("Upload Academic Paper (PDF)", type=["pdf"])
-    use_sample = st.checkbox("Use Demo Sample Paper", value=uploaded_file is None)
 
     if uploaded_file is not None or use_sample:
         parser = PaperParser()
@@ -137,114 +214,133 @@ def main():
                     title="FlashMind: Efficient Long-Context Transformers",
                 )
 
-        # Top Summary Metrics
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric(
-            "Document Title",
-            meta.title[:25] + "..." if len(meta.title) > 25 else meta.title,
-        )
-        col2.metric("Total Pages", meta.page_count)
-        col3.metric("Text Chunks", len(chunks))
-        col4.metric("Sections Detected", len(meta.sections))
+        st.subheader(meta.title)
+        if uploaded_file is None:
+            st.caption(
+                f"Demonstration content — not a published research paper · "
+                f"{meta.page_count} page · {len(chunks)} text chunks"
+            )
+        else:
+            st.caption(
+                f"{Path(uploaded_file.name).name} · {meta.page_count} pages · "
+                f"{len(meta.sections)} sections detected"
+            )
 
         st.markdown("---")
 
-        # Tabs Navigation
-        tab_summary, tab_rag, tab_graph = st.tabs(
-            [
-                "📌 Executive Digest",
-                "💬 Grounded RAG Q&A",
-                "🕸️ Concept Graph",
-            ]
-        )
+        tab_workspace, tab_graph = st.tabs(["Paper workspace", "Concept graph"])
 
-        # TAB 1: Executive Digest
-        with tab_summary:
-            summarizer = PaperSummarizer(meta, chunks)
-            digest = summarizer.generate_digest()
+        with tab_workspace:
+            digest_column, source_column = st.columns([1.8, 1], gap="large")
+            with digest_column:
+                summarizer = PaperSummarizer(meta, chunks)
+                digest = summarizer.generate_digest()
 
-            st.subheader("📌 Executive Overview")
-            st.info(digest["overview"])
+                st.markdown("### Executive digest")
+                st.write(digest["overview"])
 
-            st.subheader("💡 Key Takeaways & Contributions")
-            for idx, insight in enumerate(digest["key_insights"], 1):
-                st.markdown(f"**{idx}.** {insight}")
+                st.markdown("### Key insights")
+                for idx, insight in enumerate(digest["key_insights"], 1):
+                    st.markdown(f"**{idx}**&nbsp;&nbsp; {insight}")
 
-            col_a, col_b = st.columns(2)
-            with col_a:
-                st.subheader("⚙️ Methodology")
-                st.write(digest["methodology"])
-            with col_b:
-                st.subheader("⚠️ Limitations & Future Work")
-                st.write(digest["limitations"])
-
-            st.markdown("### 📥 Export Digest")
-            exp_col1, exp_col2 = st.columns(2)
-            with exp_col1:
-                md_path = config.cache_dir / f"{meta.title[:15]}_digest.md"
-                DigestExporter.export_to_markdown(digest, md_path)
-                with open(md_path, "r", encoding="utf-8") as f:
-                    st.download_button(
-                        "Download Markdown Report",
-                        f.read(),
-                        file_name="paper_digest.md",
-                        mime="text/markdown",
-                    )
-            with exp_col2:
-                json_path = config.cache_dir / f"{meta.title[:15]}_digest.json"
-                DigestExporter.export_to_json(digest, json_path)
-                with open(json_path, "r", encoding="utf-8") as f:
-                    st.download_button(
-                        "Download JSON Data",
-                        f.read(),
-                        file_name="paper_digest.json",
-                        mime="application/json",
-                    )
-
-        # TAB 2: Grounded RAG Q&A
-        with tab_rag:
-            st.subheader("💬 Ask Questions Grounded in Paper Context")
-
-            # Initialize Vector Index
-            if (
-                "vector_index" not in st.session_state
-                or st.session_state.get("current_doc_id") != document_id
-            ):
-                with st.spinner(
-                    "Building FAISS vector index with sentence-transformers..."
+                st.markdown("### Ask about this paper")
+                if (
+                    "vector_index" not in st.session_state
+                    or st.session_state.get("current_doc_id") != document_id
                 ):
-                    idx_mgr = VectorIndex()
-                    idx_mgr.build_index(chunks)
-                    st.session_state.vector_index = idx_mgr
-                    st.session_state.current_doc_id = document_id
+                    with st.spinner("Preparing local search…"):
+                        idx_mgr = VectorIndex()
+                        idx_mgr.build_index(chunks)
+                        st.session_state.vector_index = idx_mgr
+                        st.session_state.current_doc_id = document_id
 
-            rag = RAGEngine(
-                st.session_state.vector_index, llm_provider=selected_provider
-            )
+                rag = RAGEngine(
+                    st.session_state.vector_index, llm_provider=selected_provider
+                )
+                with st.form("paper_question", clear_on_submit=False):
+                    question_col, ask_col = st.columns(
+                        [5, 1], vertical_alignment="bottom"
+                    )
+                    with question_col:
+                        user_query = st.text_input(
+                            "Question",
+                            placeholder="Ask about the paper's methods, findings, or limitations…",
+                        )
+                    with ask_col:
+                        submitted = st.form_submit_button(
+                            "Ask", use_container_width=True
+                        )
 
-            user_query = st.text_input(
-                "Enter your question about the paper:",
-                placeholder="e.g. What memory complexity improvement does FlashMind achieve?",
-            )
-
-            if user_query:
-                with st.spinner(
-                    "Retrieving semantic context and synthesizing answer..."
+                response_key = (document_id, user_query.strip(), llm_option)
+                if (
+                    submitted
+                    and user_query.strip()
+                    and st.session_state.get("query_response_key") != response_key
                 ):
-                    response = rag.query(user_query, top_k=3)
-                    st.markdown("#### 🤖 Grounded AI Answer")
-                    st.success(response.answer)
+                    with st.spinner(
+                        "Finding relevant passages and preparing an answer…"
+                    ):
+                        st.session_state.query_response = rag.query(
+                            user_query.strip(), top_k=3
+                        )
+                        st.session_state.query_response_key = response_key
 
-                    st.markdown("#### 📚 Source Citations & Snippets")
+                response = None
+                if st.session_state.get("query_response_key") == response_key:
+                    response = st.session_state.query_response
+                if submitted and not user_query.strip():
+                    st.warning("Enter a question about the paper first.")
+                if response:
+                    st.markdown("#### Answer")
+                    st.write(response.answer)
+
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    st.markdown("### Methodology")
+                    st.write(digest["methodology"])
+                with col_b:
+                    st.markdown("### Limitations and future work")
+                    st.write(digest["limitations"])
+
+                st.markdown("### Export digest")
+                exp_col1, exp_col2 = st.columns(2)
+                with exp_col1:
+                    md_path = config.cache_dir / f"{meta.title[:15]}_digest.md"
+                    DigestExporter.export_to_markdown(digest, md_path)
+                    with open(md_path, "r", encoding="utf-8") as f:
+                        st.download_button(
+                            "Download Markdown Report",
+                            f.read(),
+                            file_name="paper_digest.md",
+                            mime="text/markdown",
+                        )
+                with exp_col2:
+                    json_path = config.cache_dir / f"{meta.title[:15]}_digest.json"
+                    DigestExporter.export_to_json(digest, json_path)
+                    with open(json_path, "r", encoding="utf-8") as f:
+                        st.download_button(
+                            "Download JSON Data",
+                            f.read(),
+                            file_name="paper_digest.json",
+                            mime="application/json",
+                        )
+
+            with source_column:
+                st.markdown("### Retrieved sources")
+                if response:
                     for src in response.sources:
                         with st.expander(
-                            f"[S{src.source_id}] Page {src.page_num} | Section: {src.section_name} (Similarity: {src.similarity_score})"
+                            f"[S{src.source_id}] · Page {src.page_num} · {src.section_name}"
                         ):
                             st.write(src.snippet)
+                else:
+                    st.caption(
+                        "Ask a question to see the paper passages used for the answer, "
+                        "with page and section details."
+                    )
 
-        # TAB 3: Concept Graph
         with tab_graph:
-            st.subheader("🕸️ Concept Co-occurrence & Entity Graph")
+            st.markdown("### Concept co-occurrence graph")
             st.write(
                 "Extracts technical concepts, model names, and relationships directly from the document."
             )
