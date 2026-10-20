@@ -122,7 +122,7 @@ class ConceptGraphExtractor:
             node_x.append(x)
             node_y.append(y)
             freq = G.nodes[node].get("freq", 1)
-            node_text.append(f"Concept: {node}<br>Mentions: {freq}")
+            node_text.append(f"Concept: {node}<br>Chunks containing concept: {freq}")
             node_frequency.append(freq)
             node_size.append(12 + min(freq, 20) * 1.5)
 
@@ -141,7 +141,7 @@ class ConceptGraphExtractor:
                 "size": node_size,
                 "colorbar": {
                     "thickness": 15,
-                    "title": {"text": "Mention Frequency", "font": {"color": "white"}},
+                    "title": {"text": "Chunks Containing Concept", "font": {"color": "white"}},
                     "xanchor": "left",
                     "tickfont": {"color": "white"},
                 },
