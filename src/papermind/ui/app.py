@@ -16,6 +16,7 @@ import streamlit as st
 from papermind.config import config
 from papermind.embeddings import VectorIndex
 from papermind.graph import ConceptGraphExtractor
+from papermind.learning import PaperMemory
 from papermind.parser import PaperParser, document_fingerprint
 from papermind.rag_engine import RAGEngine
 from papermind.summarizer import PaperSummarizer
@@ -50,7 +51,7 @@ st.markdown(
         font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
     .main .block-container {
-        max-width: 1440px;
+        max-width: 1080px;
         padding-top: 2rem;
         padding-bottom: 3rem;
     }
@@ -72,10 +73,7 @@ st.markdown(
     }
     [data-testid="stHeading"] h1,
     [data-testid="stHeading"] h2,
-    .stMarkdown h1, .stMarkdown h2 {
-        font-family: Georgia, "Times New Roman", serif;
-        font-weight: 500;
-    }
+    .stMarkdown h1, .stMarkdown h2 { font-weight: 600; }
     p, label, .stCaption, [data-testid="stCaptionContainer"] {
         color: var(--paper-muted);
     }
@@ -120,6 +118,41 @@ st.markdown(
     [data-testid="stMetricLabel"] {
         color: var(--paper-muted);
     }
+    .stButton > button[kind="secondary"] {
+        min-height: 3rem;
+        white-space: normal;
+        text-align: left;
+        line-height: 1.35;
+    }
+    [data-testid="stChatMessage"] {
+        max-width: 780px;
+        margin-left: auto;
+        margin-right: auto;
+        padding: 0.7rem 0.5rem;
+        border: 0;
+        background: transparent;
+    }
+    [data-testid="stChatMessageAvatarUser"],
+    [data-testid="stChatMessageAvatarAssistant"] { display: none; }
+    [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
+        justify-content: flex-end;
+    }
+    [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"])
+        [data-testid="stChatMessageContent"] {
+        flex: 0 1 auto;
+        max-width: 78%;
+        padding: 0.72rem 1rem;
+        border-radius: 1.25rem;
+        background: #eef1f5;
+    }
+    [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"])
+        [data-testid="stChatMessageContent"] { padding-left: 0; }
+    [data-testid="stChatInput"] textarea {
+        border-radius: 20px;
+        padding: 0.85rem 1rem;
+        background: #ffffff;
+        box-shadow: 0 2px 12px rgba(23, 36, 58, 0.08);
+    }
     [data-testid="stAlert"] {
         border-radius: 6px;
     }
@@ -135,6 +168,44 @@ st.markdown(
 """,
     unsafe_allow_html=True,
 )
+
+if st.session_state.get("dark_mode", False):
+    st.markdown(
+        """
+<style>
+    :root {
+        --paper-bg: #212121;
+        --paper-surface: #2f2f2f;
+        --paper-ink: #ececec;
+        --paper-muted: #b4b4b4;
+        --paper-line: #454545;
+        --paper-accent: #8ab4f8;
+    }
+    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+        background: var(--paper-bg);
+        color: var(--paper-ink);
+    }
+    [data-testid="stSidebar"], [data-testid="stChatInput"] textarea,
+    [data-testid="stFileUploaderDropzone"] {
+        background: var(--paper-surface);
+        color: var(--paper-ink);
+        border-color: var(--paper-line);
+    }
+    [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"])
+        [data-testid="stChatMessageContent"] { background: #303030; }
+    .stButton > button, .stDownloadButton > button {
+        background: var(--paper-surface);
+        color: var(--paper-ink);
+        border-color: var(--paper-line);
+    }
+    [data-baseweb="tab"], [data-testid="stExpander"] {
+        color: var(--paper-ink);
+        border-color: var(--paper-line);
+    }
+</style>
+""",
+        unsafe_allow_html=True,
+    )
 
 
 def sample_document_text() -> str:
@@ -157,9 +228,167 @@ def sample_document_text() -> str:
     """
 
 
+def render_chat(meta, chunks, document_id, selected_provider, saved_notes):
+    """Render the paper conversation as the primary, full-width workspace view."""
+    if (
+        "vector_index" not in st.session_state
+        or st.session_state.get("current_doc_id") != document_id
+    ):
+        with st.spinner("Preparing paper search…"):
+            idx_mgr = VectorIndex()
+            idx_mgr.build_index(chunks)
+            st.session_state.vector_index = idx_mgr
+            st.session_state.current_doc_id = document_id
+
+    rag = RAGEngine(st.session_state.vector_index, llm_provider=selected_provider)
+    history_key = f"paper_chat_{document_id}"
+    st.session_state.setdefault(history_key, [])
+    history = st.session_state[history_key]
+
+    st.markdown("### Chat with your paper")
+    st.caption("Ask a question, then explore the cited passages behind each answer.")
+
+    if not history:
+        st.markdown("#### A good place to start")
+        prompt_columns = st.columns(3)
+        suggested_questions = [
+            "What problem does this paper address?",
+            "Explain the method in simple terms.",
+            "What evidence supports the main result?",
+        ]
+        for column, prompt in zip(prompt_columns, suggested_questions):
+            with column:
+                if st.button(
+                    prompt,
+                    key=f"suggest_{document_id}_{prompt}",
+                    use_container_width=True,
+                ):
+                    st.session_state["pending_chat_question"] = prompt
+                    st.rerun()
+
+    for message in history:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+            for source in message.get("sources", []):
+                with st.expander(
+                    f"[{source['source_id']}] Page {source['page_num']} · "
+                    f"{source['section_name']}"
+                ):
+                    st.write(source["snippet"])
+            if message.get("user_notes"):
+                with st.expander("Relevant saved notes · not paper citations"):
+                    for note in message["user_notes"]:
+                        st.markdown(f"- {note}")
+
+    user_query = st.chat_input(
+        "Ask a follow-up about the paper…",
+        key=f"chat_input_{document_id}",
+    )
+    user_query = user_query or st.session_state.pop("pending_chat_question", None)
+    if user_query and user_query.strip():
+        user_query = user_query.strip()
+        history.append({"role": "user", "content": user_query})
+        with st.chat_message("user"):
+            st.markdown(user_query)
+
+        with st.chat_message("assistant"):
+            with st.status("Searching your paper…", expanded=True) as work_status:
+                response = rag.query(
+                    user_query,
+                    top_k=3,
+                    user_notes=saved_notes,
+                    progress_callback=lambda message: work_status.update(
+                        label=message, state="running", expanded=True
+                    ),
+                )
+                work_status.update(
+                    label="Answer ready · grounded in retrieved passages",
+                    state="complete",
+                    expanded=False,
+                )
+            st.markdown(response.answer)
+            source_data = []
+            for source in response.sources:
+                source_data.append(source.model_dump())
+                with st.expander(
+                    f"[{source.source_id}] Page {source.page_num} · "
+                    f"{source.section_name}"
+                ):
+                    st.write(source.snippet)
+        history.append(
+            {
+                "role": "assistant",
+                "content": response.answer,
+                "sources": source_data,
+                "user_notes": response.user_notes,
+            }
+        )
+        if response.user_notes:
+            with st.expander("Relevant saved notes · not paper citations"):
+                for note in response.user_notes:
+                    st.markdown(f"- {note}")
+
+
+def render_digest(meta, chunks):
+    """Render the paper summary and its export actions."""
+    summarizer = PaperSummarizer(meta, chunks)
+    digest = summarizer.generate_digest()
+    st.markdown("### Executive digest")
+    st.write(digest["overview"])
+    st.markdown("### Key insights")
+    for idx, insight in enumerate(digest["key_insights"], 1):
+        st.markdown(f"**{idx}**&nbsp;&nbsp; {insight}")
+
+    detail_col, limitation_col = st.columns(2)
+    with detail_col:
+        st.markdown("### Methodology")
+        st.write(digest["methodology"])
+    with limitation_col:
+        st.markdown("### Limitations and future work")
+        st.write(digest["limitations"])
+
+    export_col1, export_col2 = st.columns(2)
+    with export_col1:
+        md_path = config.cache_dir / f"{meta.title[:15]}_digest.md"
+        DigestExporter.export_to_markdown(digest, md_path)
+        with open(md_path, "r", encoding="utf-8") as f:
+            st.download_button(
+                "Download Markdown Report",
+                f.read(),
+                file_name="paper_digest.md",
+                mime="text/markdown",
+            )
+    with export_col2:
+        json_path = config.cache_dir / f"{meta.title[:15]}_digest.json"
+        DigestExporter.export_to_json(digest, json_path)
+        with open(json_path, "r", encoding="utf-8") as f:
+            st.download_button(
+                "Download JSON Data",
+                f.read(),
+                file_name="paper_digest.json",
+                mime="application/json",
+            )
+
+
+def render_concept_map(chunks):
+    """Render the paper concept co-occurrence graph."""
+    st.markdown("### Concept co-occurrence graph")
+    st.write(
+        "Extracts technical concepts, model names, and relationships directly from the document."
+    )
+    with st.spinner("Generating concept network graph..."):
+        extractor = ConceptGraphExtractor(top_n_concepts=15)
+        graph, _ = extractor.build_graph(chunks)
+        figure = extractor.create_plotly_figure(graph)
+        st.plotly_chart(figure, use_container_width=True)
+
+
 def main():
     st.sidebar.title("PaperMind")
-    st.sidebar.caption("Research paper workspace")
+    st.sidebar.caption("Your research workspace")
+
+    st.sidebar.toggle("Dark mode", key="dark_mode", help="Switch between light and dark themes.")
+    new_chat_requested = st.sidebar.button("＋  New chat", use_container_width=True)
 
     st.sidebar.markdown("---")
     st.sidebar.subheader("Answer settings")
@@ -167,7 +396,15 @@ def main():
         "LLM Synthesis Backend",
         ["Offline Synthesizer (Fast)", "Ollama (Local Llama3)", "OpenAI GPT-3.5"],
         index=0,
+        help=(
+            "Offline mode retrieves evidence and answers immediately with excerpts. "
+            "Ollama or OpenAI can compose fuller responses when configured."
+        ),
     )
+    if llm_option == "Offline Synthesizer (Fast)":
+        st.sidebar.caption("Fast evidence mode · no generative model is running.")
+    elif llm_option == "OpenAI GPT-3.5" and not config.openai_api_key:
+        st.sidebar.warning("OPENAI_API_KEY is not configured; answers will use offline evidence mode.")
 
     provider_map = {
         "Offline Synthesizer (Fast)": "offline",
@@ -185,14 +422,12 @@ def main():
 
     st.sidebar.markdown("---")
     st.sidebar.caption(
-        "Uploaded PDF originals are parsed in memory. Provider settings determine "
-        "whether retrieved passages leave your device."
+        "PDFs are parsed in memory. Selected model providers may receive retrieved "
+        "passages and relevant notes."
     )
 
     st.title("PaperMind")
-    st.write(
-        "Read, question, and explore a research paper with its sources close at hand."
-    )
+    st.caption("Your research copilot · answers grounded in the paper you choose")
 
     if uploaded_file is not None or use_sample:
         parser = PaperParser()
@@ -226,130 +461,61 @@ def main():
                 f"{len(meta.sections)} sections detected"
             )
 
-        st.markdown("---")
+        paper_memory = PaperMemory(config.cache_dir / "paper_memory.json")
+        try:
+            saved_notes = paper_memory.get_notes(document_id)
+        except (OSError, TypeError, ValueError) as error:
+            st.sidebar.error(f"Could not read saved paper notes: {error}")
+            saved_notes = []
 
-        tab_workspace, tab_graph = st.tabs(["Paper workspace", "Concept graph"])
-
-        with tab_workspace:
-            digest_column, source_column = st.columns([1.8, 1], gap="large")
-            with digest_column:
-                summarizer = PaperSummarizer(meta, chunks)
-                digest = summarizer.generate_digest()
-
-                st.markdown("### Executive digest")
-                st.write(digest["overview"])
-
-                st.markdown("### Key insights")
-                for idx, insight in enumerate(digest["key_insights"], 1):
-                    st.markdown(f"**{idx}**&nbsp;&nbsp; {insight}")
-
-                st.markdown("### Ask about this paper")
-                if (
-                    "vector_index" not in st.session_state
-                    or st.session_state.get("current_doc_id") != document_id
-                ):
-                    with st.spinner("Preparing local search…"):
-                        idx_mgr = VectorIndex()
-                        idx_mgr.build_index(chunks)
-                        st.session_state.vector_index = idx_mgr
-                        st.session_state.current_doc_id = document_id
-
-                rag = RAGEngine(
-                    st.session_state.vector_index, llm_provider=selected_provider
-                )
-                with st.form("paper_question", clear_on_submit=False):
-                    question_col, ask_col = st.columns(
-                        [5, 1], vertical_alignment="bottom"
-                    )
-                    with question_col:
-                        user_query = st.text_input(
-                            "Question",
-                            placeholder="Ask about the paper's methods, findings, or limitations…",
-                        )
-                    with ask_col:
-                        submitted = st.form_submit_button(
-                            "Ask", use_container_width=True
-                        )
-
-                response_key = (document_id, user_query.strip(), llm_option)
-                if (
-                    submitted
-                    and user_query.strip()
-                    and st.session_state.get("query_response_key") != response_key
-                ):
-                    with st.spinner(
-                        "Finding relevant passages and preparing an answer…"
-                    ):
-                        st.session_state.query_response = rag.query(
-                            user_query.strip(), top_k=3
-                        )
-                        st.session_state.query_response_key = response_key
-
-                response = None
-                if st.session_state.get("query_response_key") == response_key:
-                    response = st.session_state.query_response
-                if submitted and not user_query.strip():
-                    st.warning("Enter a question about the paper first.")
-                if response:
-                    st.markdown("#### Answer")
-                    st.write(response.answer)
-
-                col_a, col_b = st.columns(2)
-                with col_a:
-                    st.markdown("### Methodology")
-                    st.write(digest["methodology"])
-                with col_b:
-                    st.markdown("### Limitations and future work")
-                    st.write(digest["limitations"])
-
-                st.markdown("### Export digest")
-                exp_col1, exp_col2 = st.columns(2)
-                with exp_col1:
-                    md_path = config.cache_dir / f"{meta.title[:15]}_digest.md"
-                    DigestExporter.export_to_markdown(digest, md_path)
-                    with open(md_path, "r", encoding="utf-8") as f:
-                        st.download_button(
-                            "Download Markdown Report",
-                            f.read(),
-                            file_name="paper_digest.md",
-                            mime="text/markdown",
-                        )
-                with exp_col2:
-                    json_path = config.cache_dir / f"{meta.title[:15]}_digest.json"
-                    DigestExporter.export_to_json(digest, json_path)
-                    with open(json_path, "r", encoding="utf-8") as f:
-                        st.download_button(
-                            "Download JSON Data",
-                            f.read(),
-                            file_name="paper_digest.json",
-                            mime="application/json",
-                        )
-
-            with source_column:
-                st.markdown("### Retrieved sources")
-                if response:
-                    for src in response.sources:
-                        with st.expander(
-                            f"[S{src.source_id}] · Page {src.page_num} · {src.section_name}"
-                        ):
-                            st.write(src.snippet)
-                else:
-                    st.caption(
-                        "Ask a question to see the paper passages used for the answer, "
-                        "with page and section details."
-                    )
-
-        with tab_graph:
-            st.markdown("### Concept co-occurrence graph")
-            st.write(
-                "Extracts technical concepts, model names, and relationships directly from the document."
+        with st.sidebar.expander("Paper memory", expanded=False):
+            st.caption(
+                "Add a note or correction for future questions on this paper. "
+                "Notes stay on this device and are not model training."
             )
+            with st.form(f"paper_memory_form_{document_id}"):
+                new_note = st.text_area(
+                    "What should PaperMind remember?",
+                    placeholder="Add a definition, correction, or research note…",
+                    max_chars=PaperMemory.MAX_NOTE_LENGTH,
+                )
+                save_note = st.form_submit_button("Save note")
+            if save_note:
+                try:
+                    paper_memory.add_note(document_id, new_note)
+                except (OSError, TypeError, ValueError) as error:
+                    st.error(f"Could not save note: {error}")
+                else:
+                    st.success("Saved for this paper on this device.")
+                    st.rerun()
+            if saved_notes:
+                st.caption(f"{len(saved_notes)} saved note(s)")
+                if st.button("Clear notes for this paper", key=f"clear_notes_{document_id}"):
+                    try:
+                        paper_memory.clear_notes(document_id)
+                    except (OSError, TypeError, ValueError) as error:
+                        st.error(f"Could not clear notes: {error}")
+                    else:
+                        st.rerun()
 
-            with st.spinner("Generating concept network graph..."):
-                extractor = ConceptGraphExtractor(top_n_concepts=15)
-                G, _ = extractor.build_graph(chunks)
-                fig = extractor.create_plotly_figure(G)
-                st.plotly_chart(fig, use_container_width=True)
+        history_key = f"paper_chat_{document_id}"
+        st.session_state.setdefault(history_key, [])
+        if new_chat_requested:
+            st.session_state[history_key] = []
+            st.session_state.pop("pending_chat_question", None)
+            st.rerun()
+        workspace_view = st.sidebar.radio(
+            "Workspace",
+            ["Chat", "Paper digest", "Concept map"],
+            key=f"workspace_{document_id}",
+        )
+
+        if workspace_view == "Chat":
+            render_chat(meta, chunks, document_id, selected_provider, saved_notes)
+        elif workspace_view == "Paper digest":
+            render_digest(meta, chunks)
+        else:
+            render_concept_map(chunks)
 
 
 if __name__ == "__main__":

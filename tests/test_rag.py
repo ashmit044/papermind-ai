@@ -47,6 +47,47 @@ def test_rag_engine_query():
     assert resp.sources[0].page_num == 1
 
 
+def test_rag_engine_reports_retrieval_and_answer_progress():
+    chunk = TextChunk(
+        chunk_id=0,
+        text="FlashMind reduces complexity to O(N log N).",
+        page_num=1,
+        section_name="Abstract",
+        char_count=44,
+    )
+    updates = []
+    rag = RAGEngine(StubVectorIndex([(chunk, 0.9)]), llm_provider="offline")
+
+    rag.query("How does FlashMind reduce complexity?", progress_callback=updates.append)
+
+    assert updates == [
+        "Searching the paper for relevant passages…",
+        "Reviewing 1 passage(s) and 0 saved note(s), then composing an answer…",
+    ]
+
+
+def test_rag_engine_returns_only_relevant_notes_separately_from_citations():
+    chunk = TextChunk(
+        chunk_id=0,
+        text="The experiment measured model accuracy on a held-out dataset.",
+        page_num=2,
+        section_name="Experiments",
+        char_count=62,
+    )
+    rag = RAGEngine(StubVectorIndex([(chunk, 0.8)]), llm_provider="offline")
+
+    response = rag.query(
+        "What was the sample size?",
+        user_notes=[
+            "Sample size was 120 participants.",
+            "The study used a randomized control group.",
+        ],
+    )
+
+    assert response.user_notes == ["Sample size was 120 participants."]
+    assert response.sources[0].page_num == 2
+
+
 def test_rag_engine_rejects_empty_questions_and_invalid_top_k():
     rag = RAGEngine(vector_index=object(), llm_provider="offline")
 

@@ -29,13 +29,14 @@ Whether you prefer a terminal command-line tool with rich formatting or a sleek 
 ## ✨ Core Features
 
 - 📑 **Smart PDF Structure Extraction**: Uses `PyMuPDF` (`fitz`) to parse academic paper sections (*Abstract, Intro, Methods, Experiments, Conclusion*), removing headers/footers and splitting text into overlapping semantic chunks.
-- 🛡️ **Safer PDF Handling**: Uploaded PDF originals are parsed in memory rather than persisted in the local cache. If you select OpenAI for Q&A, retrieved passages are sent to that provider for answer generation.
+- 🛡️ **Safer PDF Handling**: Uploaded PDF originals are parsed in memory rather than persisted in the local cache. Selected model providers may receive retrieved passages and relevant saved notes for answer generation.
 - ⚡ **Local Dense Vector Retrieval (RAG)**: Indexes text chunks with `sentence-transformers/all-MiniLM-L6-v2` and `FAISS` for cosine similarity search with exact page and section citations.
 - 🔎 **Traceable RAG Answers**: Answers cite retrieved passages inline (`[S1]`), mapped to page and section snippets; missing or unknown citations are clearly flagged.
+- 🧠 **Paper-scoped memory**: Save your own notes or corrections per paper. Relevant notes can supplement configured model providers, remain visibly separate from paper citations, and are stored locally; this is retrieval memory, not model training.
 - 📌 **Executive Paper Summaries**: Generates structured executive digests including key takeaways, methodological novelty, and research limitations.
 - 🕸️ **Interactive Concept Knowledge Graph**: Extracts domain concepts and entities into an interactive `NetworkX` & `Plotly` network graph showing central themes and co-occurrence nodes.
 - 🖥️ **Dual Interface**:
-  - **Streamlit Web Dashboard**: A focused paper workspace that keeps the digest, question form, and cited passages together, with a separate concept graph view.
+  - **Streamlit Web App**: A chat-first research workspace with persistent per-paper conversations, page-level citations, light/dark themes, a paper digest, and a concept map.
   - **Rich CLI Utility**: Powered by `typer` and `rich` for quick command-line batch processing.
 - 📤 **Multi-Format Export**: Export digests to clean Markdown reports or structured JSON files.
 - 🐳 **Docker & CI Ready**: Full Docker containerization and GitHub Actions workflow for automated linting and unit testing with `pytest`.
@@ -45,17 +46,9 @@ Whether you prefer a terminal command-line tool with rich formatting or a sleek 
 ## 📸 Screenshots
 
 <p align="center">
-  <img src="assets/screenshots/paper_workspace.png" alt="PaperMind workspace showing the paper digest and an honest empty state for retrieved sources" width="85%" />
+  <img src="assets/screenshots/chat_workspace.png" alt="PaperMind chat-first research workspace with light and dark theme control, paper upload, and suggested questions" width="100%" />
   <br/>
-  <i>Paper workspace — the included synthetic demo is labeled as demonstration content.</i>
-</p>
-
-<br/>
-
-<p align="center">
-  <img src="assets/screenshots/paper_question_sources.png" alt="PaperMind question form with retrieved, page-labeled source passages" width="85%" />
-  <br/>
-  <i>Question flow — retrieved passages retain their page and section labels.</i>
+  <i>Chat with a paper, inspect cited passages, and keep your own notes separate from published evidence.</i>
 </p>
 
 <br/>
