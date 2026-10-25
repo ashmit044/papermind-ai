@@ -11,9 +11,7 @@ def test_paper_memory_persists_notes_per_document(tmp_path):
     memory.add_note("paper-a", "  The authors use a held-out test set.  ")
     memory.add_note("paper-b", "Check the appendix for dataset details.")
 
-    assert memory.get_notes("paper-a") == [
-        "The authors use a held-out test set."
-    ]
+    assert memory.get_notes("paper-a") == ["The authors use a held-out test set."]
     memory.clear_notes("paper-a")
     assert memory.get_notes("paper-a") == []
     assert memory.get_notes("paper-b") == ["Check the appendix for dataset details."]

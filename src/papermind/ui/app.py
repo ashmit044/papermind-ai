@@ -387,7 +387,9 @@ def main():
     st.sidebar.title("PaperMind")
     st.sidebar.caption("Your research workspace")
 
-    st.sidebar.toggle("Dark mode", key="dark_mode", help="Switch between light and dark themes.")
+    st.sidebar.toggle(
+        "Dark mode", key="dark_mode", help="Switch between light and dark themes."
+    )
     new_chat_requested = st.sidebar.button("＋  New chat", use_container_width=True)
 
     st.sidebar.markdown("---")
@@ -404,7 +406,9 @@ def main():
     if llm_option == "Offline Synthesizer (Fast)":
         st.sidebar.caption("Fast evidence mode · no generative model is running.")
     elif llm_option == "OpenAI GPT-3.5" and not config.openai_api_key:
-        st.sidebar.warning("OPENAI_API_KEY is not configured; answers will use offline evidence mode.")
+        st.sidebar.warning(
+            "OPENAI_API_KEY is not configured; answers will use offline evidence mode."
+        )
 
     provider_map = {
         "Offline Synthesizer (Fast)": "offline",
@@ -490,7 +494,9 @@ def main():
                     st.rerun()
             if saved_notes:
                 st.caption(f"{len(saved_notes)} saved note(s)")
-                if st.button("Clear notes for this paper", key=f"clear_notes_{document_id}"):
+                if st.button(
+                    "Clear notes for this paper", key=f"clear_notes_{document_id}"
+                ):
                     try:
                         paper_memory.clear_notes(document_id)
                     except (OSError, TypeError, ValueError) as error:
